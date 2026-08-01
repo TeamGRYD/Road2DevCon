@@ -1,0 +1,61 @@
+/**
+ * Road to DevCon 8 - Docusaurus Custom Theme
+ * Uses DevCon purple palette
+ */
+
+:root {
+  --ifm-color-primary: #7235ed;
+  --ifm-color-primary-dark: #5e1dd9;
+  --ifm-color-primary-darker: #5618cc;
+  --ifm-color-primary-darkest: #4714a8;
+  --ifm-color-primary-light: #8a53f0;
+  --ifm-color-primary-lighter: #9462f2;
+  --ifm-color-primary-lightest: #b08ef6;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(114, 53, 237, 0.1);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #a37ef5;
+  --ifm-color-primary-dark: #8a5cf2;
+  --ifm-color-primary-darker: #7e4df0;
+  --ifm-color-primary-darkest: #5e1dd9;
+  --ifm-color-primary-light: #bc9ff8;
+  --ifm-color-primary-lighter: #c8aff9;
+  --ifm-color-primary-lightest: #e4d7fc;
+  --docusaurus-highlighted-code-line-bg: rgba(163, 126, 245, 0.15);
+}
+
+/* Hero banner adjustments */
+.hero--primary {
+  background: linear-gradient(135deg, #1a0533 0%, #2d1b69 50%, #7235ed 100%);
+}
+
+/* Navbar style */
+.navbar {
+  backdrop-filter: blur(12px);
+}
+
+[data-theme='dark'] .navbar {
+  background: rgba(26, 5, 51, 0.85);
+}
+
+/* Footer branding */
+.footer--dark {
+  background: linear-gradient(180deg, #1a0533 0%, #0d0019 100%);
+}
+
+/* Code block styling */
+.prism-code {
+  border-radius: 8px;
+}
+
+/* Admonition styling */
+.alert {
+  border-radius: 8px;
+}
+
+/* Sidebar category labels */
+.menu__link--sublist-caret {
+  font-weight: 600;
+}
