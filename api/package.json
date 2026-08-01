@@ -1,0 +1,9 @@
+{
+  "name": "road2devcon-api",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "ethers": "^6.13.0",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

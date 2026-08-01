@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://teamgryd.github.io/RoadToDevcon8/">📖 Documentation</a> •
+  <a href="https://wiki.road2devcon.quest">📖 Documentation</a> •
   <a href="https://devcon.org">🎪 DevCon 8</a> •
   <a href="https://gryd.wtf">🔧 GRYD</a> •
   <a href="https://x.com/TeamGRYD">𝕏 @TeamGRYD</a>
@@ -36,8 +36,13 @@ The workshop covers Ethereum's core principles through the **CROPS** framework:
 ### 📊 Presentations
 5 slide decks that can be presented directly from the portal, covering blockchain fundamentals through to DevCon 8 participation.
 
-### 📝 Quizzes
-Topic-based quizzes with automatically shuffled questions. Scores are stored on-chain via a Solidity smart contract on the Sepolia testnet. No immediate correct/incorrect feedback to prevent coordination.
+### 📝 Anti-Cheat Quizzes
+Server-side quiz engine with 400+ questions (100+ per topic). Each student gets 10 random questions with a 30-second hard timer. Features:
+- **Server-side grading** — correct answers never reach the browser
+- **Admin-signed scores** — prevents manual transaction forging
+- **One attempt only** — enforced on-chain per wallet per quiz
+- **Unique X usernames** — one registration per identity
+- **On-chain scoring** — scores stored on Sepolia testnet
 
 ### ⚔️ Workshop Quests
 Two hands-on, guided tutorials where participants deploy real smart contracts:
@@ -48,7 +53,7 @@ Two hands-on, guided tutorials where participants deploy real smart contracts:
 Live leaderboard powered by the `QuizScores.sol` smart contract. Reads participant scores directly from the blockchain.
 
 ### 🔗 Wallet Integration
-MetaMask wallet connection for quiz score submission and leaderboard tracking on the Sepolia testnet.
+MetaMask wallet connection with on-chain registration (name + X username permanently linked to wallet) and quiz score submission on Sepolia testnet.
 
 ## Tech Stack
 
@@ -59,6 +64,7 @@ MetaMask wallet connection for quiz score submission and leaderboard tracking on
 | **Blockchain** | [Ethers.js](https://docs.ethers.org/) v6 |
 | **Smart Contract** | [Solidity](https://soliditylang.org/) ^0.8.19 |
 | **Network** | Ethereum Sepolia Testnet |
+| **Serverless API** | [Vercel Functions](https://vercel.com/docs/functions) |
 | **Documentation** | [Docusaurus](https://docusaurus.io/) 3 |
 
 ## Getting Started
@@ -68,59 +74,83 @@ MetaMask wallet connection for quiz score submission and leaderboard tracking on
 - [Node.js](https://nodejs.org/) 18+
 - [MetaMask](https://metamask.io/) browser extension
 - [Git](https://git-scm.com/)
+- [Vercel](https://vercel.com/) account (free tier)
 
 ### Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/TeamGRYD/RoadToDevcon8.git
-cd RoadToDevcon8
+git clone https://github.com/TeamGRYD/Road2DevCon.git
+cd Road2DevCon
 
-# Install dependencies
+# Install frontend dependencies
 npm install
+
+# Install API dependencies
+cd api && npm install && cd ..
 
 # Copy environment config
 cp .env.example .env
 
-# Start the development server
-npm run dev
+# Start with Vercel (includes serverless API)
+npx vercel dev
 ```
 
 ### Environment Configuration
 
-Edit `.env` with your values:
+**Client-side** (in `.env` file):
 
 ```env
 VITE_CONTRACT_ADDRESS=<deployed-QuizScores-contract-address>
-VITE_CHAIN_ID=11155111
-VITE_RPC_URL=https://rpc.sepolia.org
 ```
 
-> **Note**: The portal works for presentations and quests without a deployed contract. The contract is only needed for quiz scoring and the leaderboard.
+**Server-side** (in Vercel Dashboard → Settings → Environment Variables):
+
+| Variable | Description |
+|----------|-------------|
+| `ADMIN_PRIVATE_KEY` | Admin wallet private key (signs quiz scores) |
+| `ADMIN_ADDRESS` | Admin wallet address |
+| `JWT_SECRET` | Random 32+ character string for session tokens |
+| `RPC_URL` | Sepolia RPC URL (default: `https://rpc.sepolia.org`) |
+
+> **⚠️ Security Note**: Server-side variables must NOT have the `VITE_` prefix. Never store private keys in `.env` files that are committed to version control.
+
+> **Note**: The portal works for presentations and quests without a deployed contract. The contract + API are only needed for quiz scoring and the leaderboard.
 
 ## Project Structure
 
 ```
-RoadToDevcon8/
+Road2DevCon/
 ├── index.html                 # Entry point (nav, footer, meta)
 ├── style.css                  # Global styles and DevCon theme
-├── package.json               # Dependencies (Vite, Ethers.js)
+├── package.json               # Frontend dependencies (Vite, Ethers.js)
+├── vercel.json                # Vercel routing configuration
 ├── .env.example               # Environment template
 │
 ├── contracts/
-│   └── QuizScores.sol         # On-chain quiz score tracking
+│   └── QuizScores.sol         # On-chain quiz scores (anti-cheat)
+│
+├── api/                       # Vercel Serverless Functions
+│   ├── package.json           # API dependencies (ethers, jsonwebtoken)
+│   ├── lib/
+│   │   ├── jwt.js             # JWT session management
+│   │   └── questions.js       # 400+ questions with correct answers
+│   └── quiz/
+│       ├── start.js           # Serve random questions (no answers)
+│       ├── answer.js          # Grade answers server-side
+│       └── complete.js        # Sign score with admin key
 │
 ├── src/
 │   ├── main.js                # Page rendering and routing
 │   ├── router.js              # Hash-based SPA router
 │   ├── slides.js              # Presentation slide engine
-│   ├── quiz.js                # Quiz engine (shuffle + scoring)
+│   ├── quiz.js                # Quiz engine (server-backed, 30s timer)
 │   ├── leaderboard.js         # On-chain leaderboard reader
-│   ├── wallet.js              # MetaMask wallet integration
+│   ├── wallet.js              # MetaMask wallet + registration
 │   ├── abi.js                 # QuizScores contract ABI
 │   └── data/
 │       ├── presentations.js   # 5 presentation content sets
-│       ├── quizQuestions.js   # Quiz questions per topic
+│       ├── quizQuestions.js   # Quiz metadata (NO correct answers)
 │       └── workshopQuests.js  # Quest step-by-step guides
 │
 ├── public/
@@ -138,12 +168,14 @@ RoadToDevcon8/
 
 ## Smart Contract
 
-The `QuizScores.sol` contract stores participant quiz scores on-chain:
+The `QuizScores.sol` contract stores participant quiz scores on-chain with anti-cheat protections:
 
-- **Permissionless registration** — anyone with a wallet can participate
-- **Highest-score-wins** — scores can only increase, never decrease
+- **Separate registration** — name + X username permanently linked to wallet
+- **Admin-signed scores** — ECDSA signature verification prevents score forging
+- **One attempt per quiz** — `hasAttempted` mapping enforces single attempts
+- **Unique X usernames** — case-insensitive uniqueness check
+- **Nonce replay protection** — prevents signature replay attacks
 - **Batch reads** — efficient leaderboard queries with pagination
-- **Event logging** — all submissions emit events for transparency
 
 ### Deploy to Sepolia
 
@@ -151,21 +183,23 @@ The `QuizScores.sol` contract stores participant quiz scores on-chain:
 2. Create `QuizScores.sol` and paste the contract code
 3. Compile with Solidity 0.8.19+
 4. Deploy via "Injected Provider - MetaMask" (Sepolia network)
-5. Copy the contract address to your `.env` file
+5. Pass your **admin wallet address** as the constructor argument
+6. Copy the contract address to your `.env` file
 
-See the [Smart Contract Documentation](https://teamgryd.github.io/RoadToDevcon8/smart-contract) for full API reference.
+See the [Smart Contract Documentation](https://wiki.road2devcon.quest/smart-contract) for full API reference.
 
 ## Documentation
 
 Comprehensive documentation is available at:
 
-**[teamgryd.github.io/RoadToDevcon8](https://teamgryd.github.io/RoadToDevcon8/)**
+**[wiki.road2devcon.quest](https://wiki.road2devcon.quest)**
 
 Includes:
 - Portal overview and setup guide
 - Full presentation content with further reading
 - Step-by-step quest walkthroughs
 - Smart contract API reference
+- Anti-cheat quiz system architecture
 - Curated learning resources
 
 ### Running Docs Locally
@@ -182,7 +216,7 @@ npm start
 npm run build
 ```
 
-The production build is output to `dist/`, ready for deployment to Vercel, Netlify, or any static host.
+The production build is output to `dist/`. Deploy to Vercel for full functionality (frontend + serverless API).
 
 ## Contributing
 
@@ -191,6 +225,7 @@ Contributions are welcome! Areas where you can help:
 - **Documentation**: Fix typos, improve explanations
 - **Translations**: Help translate content for Indian languages
 - **New Quests**: Design additional hands-on tutorials
+- **Quiz Questions**: Add more high-quality questions to the pool
 - **UI/UX**: Improve the portal's design and accessibility
 - **Bug Reports**: Open an issue if you find something broken
 

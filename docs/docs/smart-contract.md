@@ -12,35 +12,82 @@ The `QuizScores.sol` contract is the on-chain backbone of the portal's quiz and 
 | Property | Value |
 |----------|-------|
 | **Name** | QuizScores |
-| **License** | MIT |
+| **License** | Apache-2.0 |
 | **Solidity Version** | ^0.8.19 |
 | **Network** | Ethereum Sepolia Testnet |
-| **Source** | [`contracts/QuizScores.sol`](https://github.com/TeamGRYD/RoadToDevcon8/blob/main/contracts/QuizScores.sol) |
+| **Source** | [`contracts/QuizScores.sol`](https://github.com/TeamGRYD/Road2DevCon/blob/main/contracts/QuizScores.sol) |
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────┐
-│                  QuizScores.sol                   │
-├─────────────────────────────────────────────────┤
-│  Participant Struct:                             │
-│    - name (string)                               │
-│    - xUsername (string)                           │
-│    - quizScores[4] (uint256 array)              │
-│    - registered (bool)                           │
-├─────────────────────────────────────────────────┤
-│  Storage:                                        │
-│    - mapping(address => Participant)              │
-│    - address[] participantAddresses              │
-├─────────────────────────────────────────────────┤
-│  Functions:                                      │
-│    - registerAndSubmitScore()                     │
-│    - getParticipant()                            │
-│    - isRegistered()                              │
-│    - getAllParticipants()                         │
-│    - getParticipantCount()                       │
-│    - getLeaderboardBatch()                       │
-└─────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────┐
+│                     QuizScores.sol                         │
+├───────────────────────────────────────────────────────────┤
+│  Immutable:                                               │
+│    - admin (address) — set in constructor                 │
+├───────────────────────────────────────────────────────────┤
+│  Participant Struct:                                      │
+│    - name (string)                                        │
+│    - xUsername (string)                                    │
+│    - quizScores[4] (uint256 array)                       │
+│    - registered (bool)                                    │
+├───────────────────────────────────────────────────────────┤
+│  Storage Mappings:                                        │
+│    - mapping(address => Participant)                       │
+│    - mapping(bytes32 => address) xUsernameTaken           │
+│    - mapping(address => mapping(uint8 => bool)) attempted │
+│    - mapping(address => uint256) nonces                   │
+│    - address[] participantAddresses                       │
+├───────────────────────────────────────────────────────────┤
+│  Functions:                                               │
+│    - register(name, xUsername)           [student tx]     │
+│    - submitScore(quizId, score, nonce, sig) [student tx]  │
+│    - getParticipant()                    [view]           │
+│    - isRegistered()                      [view]           │
+│    - hasAttempted()                       [view]           │
+│    - nonces()                            [view]           │
+│    - getAllParticipants()                 [view]           │
+│    - getParticipantCount()               [view]           │
+│    - getLeaderboardBatch()               [view]           │
+└───────────────────────────────────────────────────────────┘
+```
+
+## Anti-Cheat Security Model
+
+The contract implements a multi-layered anti-cheat system:
+
+### 1. ECDSA Signature Verification
+
+Scores are **signed by an admin wallet** on the server after the student completes the quiz server-side. The contract verifies the signature using `ecrecover`. Without a valid admin signature, `submitScore()` reverts.
+
+```
+Student completes quiz → Server grades answers → Server signs score → Student submits signed score on-chain → Contract verifies signature
+```
+
+### 2. One Attempt Per Quiz
+
+Each wallet can only attempt each quiz **once**. The `hasAttempted` mapping tracks this:
+
+```solidity
+mapping(address => mapping(uint8 => bool)) public hasAttempted;
+// In submitScore(): require(!hasAttempted[msg.sender][_quizId], "Already attempted");
+```
+
+### 3. Unique X Usernames
+
+Each X (Twitter) username can only be registered to **one wallet**. The comparison is case-insensitive:
+
+```solidity
+mapping(bytes32 => address) public xUsernameTaken; // keccak256(lowercase(username)) => wallet
+```
+
+### 4. Nonce-Based Replay Protection
+
+Each wallet has an incrementing nonce to prevent replaying old signatures:
+
+```solidity
+mapping(address => uint256) public nonces;
+// In submitScore(): require(_nonce == nonces[msg.sender], "Invalid nonce");
 ```
 
 ## Data Model
@@ -51,90 +98,73 @@ The `QuizScores.sol` contract is the on-chain backbone of the portal's quiz and 
 struct Participant {
     string name;
     string xUsername;
-    uint256[4] quizScores;  // Highest scores for Quiz 0-3
+    uint256[4] quizScores;  // Scores for Quiz 0-3
     bool registered;
 }
 ```
 
-Each participant is mapped to their wallet address (`msg.sender`). The `quizScores` array stores the **highest score** achieved for each of the 4 quizzes.
+Each participant is mapped to their wallet address. Registration is permanent — once set, name and X username cannot be changed.
 
 ## Functions
 
-### `registerAndSubmitScore`
+### `register`
 
 ```solidity
-function registerAndSubmitScore(
-    string calldata _name,
-    string calldata _xUsername,
+function register(string calldata _name, string calldata _xUsername) external
+```
+
+Called by the **student** from their own wallet. Permanently links their name and X username to their Ethereum address.
+
+**Validation:**
+- Wallet must not be already registered
+- Name: 1-64 characters
+- X username: 1-32 characters
+- X username must not already be taken (case-insensitive)
+
+**Events emitted:** `ParticipantRegistered`
+
+### `submitScore`
+
+```solidity
+function submitScore(
     uint8 _quizId,
-    uint256 _score
+    uint256 _score,
+    uint256 _nonce,
+    bytes calldata _signature
 ) external
 ```
 
-The primary function called by the portal. It:
-
-1. **Registers** the participant if they haven't been registered yet
-2. **Updates** name and X username on subsequent calls
-3. **Stores the score** only if it's higher than the existing score for that quiz
+Called by the **student** after completing a quiz. The `_signature` is provided by the server backend.
 
 **Validation:**
+- Wallet must be registered
 - `_quizId` must be 0-3
-- `_name` cannot be empty
-- `_xUsername` cannot be empty
-- `_score` cannot exceed 2000
+- `_score` must be ≤ 2000
+- Must not have already attempted this quiz
+- `_nonce` must match the wallet's current nonce
+- `_signature` must be a valid ECDSA signature from the admin wallet
 
-**Events emitted:**
-- `ParticipantRegistered` (on first registration)
-- `ScoreSubmitted` (on every call)
+**Events emitted:** `ScoreSubmitted`
 
-### `getParticipant`
+### View Functions
 
-```solidity
-function getParticipant(address _wallet) external view
-    returns (string memory name, string memory xUsername, uint256[4] memory quizScores)
-```
-
-Returns a participant's full data by wallet address. Reverts if the address is not registered.
-
-### `isRegistered`
-
-```solidity
-function isRegistered(address _wallet) external view returns (bool)
-```
-
-Check if an address has been registered.
-
-### `getAllParticipants`
-
-```solidity
-function getAllParticipants() external view returns (address[] memory)
-```
-
-Returns all registered wallet addresses for leaderboard enumeration.
-
-### `getParticipantCount`
-
-```solidity
-function getParticipantCount() external view returns (uint256)
-```
-
-Returns the total number of registered participants.
-
-### `getLeaderboardBatch`
-
-```solidity
-function getLeaderboardBatch(uint256 _start, uint256 _count) external view
-    returns (
-        address[] memory wallets,
-        string[] memory names,
-        string[] memory xUsernames,
-        uint256[4][] memory scores
-    )
-```
-
-Batch-read participant data for the leaderboard. Returns parallel arrays for efficient off-chain processing. Supports pagination via `_start` and `_count`.
+| Function | Description |
+|----------|-------------|
+| `getParticipant(address)` | Returns name, X username, and quiz scores |
+| `isRegistered(address)` | Check if a wallet is registered |
+| `hasAttempted(address, uint8)` | Check if a wallet has attempted a quiz |
+| `nonces(address)` | Get current nonce for a wallet |
+| `getAllParticipants()` | Get all registered wallet addresses |
+| `getParticipantCount()` | Get total number of participants |
+| `getLeaderboardBatch(start, count)` | Paginated leaderboard data |
 
 ## Deployment
+
+### Prerequisites
+
+- A designated **admin wallet** for signing quiz scores
+- The admin wallet's **address** (used in constructor)
+- The admin wallet's **private key** (stored server-side in Vercel env vars)
 
 ### Using Remix IDE
 
@@ -143,123 +173,40 @@ Batch-read participant data for the leaderboard. Returns parallel arrays for eff
 3. Paste the contract source code
 4. Compile with Solidity **0.8.19+**
 5. Select **"Injected Provider - MetaMask"** (Sepolia network)
-6. Click **Deploy** → Confirm in MetaMask
-7. Copy the deployed contract address
+6. In the Deploy section, enter the **admin wallet address** as the constructor argument
+7. Click **Deploy** → Confirm in MetaMask
+8. Copy the deployed contract address
 
 ### Configure the Portal
 
-After deployment, set the contract address in your `.env` file:
+After deployment, set these environment variables:
 
+**Client-side** (in `.env` file):
 ```env
 VITE_CONTRACT_ADDRESS=0xYourDeployedContractAddress
 ```
 
-Restart the dev server for the change to take effect.
+**Server-side** (in Vercel Dashboard → Settings → Environment Variables):
+```
+ADMIN_PRIVATE_KEY=0xYourAdminPrivateKey
+ADMIN_ADDRESS=0xYourAdminAddress
+JWT_SECRET=any-random-string-32-chars-min
+RPC_URL=https://rpc.sepolia.org
+```
+
+:::warning
+Never put `ADMIN_PRIVATE_KEY` in your `.env` file or any file with a `VITE_` prefix. It must only exist as a server-side Vercel environment variable.
+:::
 
 ## Security Considerations
 
-- **No admin functions**: The contract has no owner or admin. Anyone can submit scores.
-- **Highest-score-wins**: Scores can only increase, never decrease. This prevents accidental overwrites.
-- **Input validation**: All inputs are validated (quiz ID range, non-empty strings, max score cap).
-- **Gas efficiency**: `getLeaderboardBatch` uses pagination to avoid gas limits on large datasets.
-
-## Full Source Code
-
-```solidity
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
-
-contract QuizScores {
-    struct Participant {
-        string name;
-        string xUsername;
-        uint256[4] quizScores;
-        bool registered;
-    }
-
-    mapping(address => Participant) private participants;
-    address[] private participantAddresses;
-
-    event ScoreSubmitted(
-        address indexed wallet, string name,
-        string xUsername, uint8 quizId, uint256 score
-    );
-    event ParticipantRegistered(
-        address indexed wallet, string name, string xUsername
-    );
-
-    function registerAndSubmitScore(
-        string calldata _name, string calldata _xUsername,
-        uint8 _quizId, uint256 _score
-    ) external {
-        require(_quizId < 4, "Invalid quiz ID (must be 0-3)");
-        require(bytes(_name).length > 0, "Name cannot be empty");
-        require(bytes(_xUsername).length > 0, "X username cannot be empty");
-        require(_score <= 2000, "Score exceeds maximum (2000)");
-
-        Participant storage p = participants[msg.sender];
-        if (!p.registered) {
-            p.registered = true;
-            p.name = _name;
-            p.xUsername = _xUsername;
-            participantAddresses.push(msg.sender);
-            emit ParticipantRegistered(msg.sender, _name, _xUsername);
-        } else {
-            p.name = _name;
-            p.xUsername = _xUsername;
-        }
-
-        if (_score > p.quizScores[_quizId]) {
-            p.quizScores[_quizId] = _score;
-        }
-        emit ScoreSubmitted(msg.sender, _name, _xUsername, _quizId, _score);
-    }
-
-    function getParticipant(address _wallet) external view
-        returns (string memory, string memory, uint256[4] memory)
-    {
-        Participant storage p = participants[_wallet];
-        require(p.registered, "Participant not found");
-        return (p.name, p.xUsername, p.quizScores);
-    }
-
-    function isRegistered(address _wallet) external view returns (bool) {
-        return participants[_wallet].registered;
-    }
-
-    function getAllParticipants() external view returns (address[] memory) {
-        return participantAddresses;
-    }
-
-    function getParticipantCount() external view returns (uint256) {
-        return participantAddresses.length;
-    }
-
-    function getLeaderboardBatch(uint256 _start, uint256 _count) external view
-        returns (address[] memory, string[] memory, string[] memory, uint256[4][] memory)
-    {
-        uint256 total = participantAddresses.length;
-        if (_start >= total) {
-            return (new address[](0), new string[](0), new string[](0), new uint256[4][](0));
-        }
-        uint256 end = _start + _count;
-        if (end > total) end = total;
-        uint256 len = end - _start;
-
-        address[] memory wallets = new address[](len);
-        string[] memory names = new string[](len);
-        string[] memory xUsernames = new string[](len);
-        uint256[4][] memory scores = new uint256[4][](len);
-
-        for (uint256 i = 0; i < len; i++) {
-            address addr = participantAddresses[_start + i];
-            Participant storage p = participants[addr];
-            wallets[i] = addr;
-            names[i] = p.name;
-            xUsernames[i] = p.xUsername;
-            scores[i] = p.quizScores;
-        }
-        return (wallets, names, xUsernames, scores);
-    }
-}
-```
+| Feature | Protection |
+|---------|-----------|
+| **Admin-signed scores** | Prevents score forging via manual transactions |
+| **One attempt per quiz** | `hasAttempted` mapping prevents retakes |
+| **Unique X usernames** | Prevents one person registering multiple times with the same X handle |
+| **Nonce replay protection** | Prevents reusing captured signatures |
+| **Permanent registration** | Name and X username locked to wallet after registration |
+| **Score cap (2000)** | Maximum score enforced at contract level |
+| **Server-side grading** | Correct answers never reach the browser |
+| **Input length limits** | Name ≤ 64 chars, X username ≤ 32 chars |

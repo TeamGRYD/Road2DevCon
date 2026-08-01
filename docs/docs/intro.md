@@ -27,10 +27,10 @@ Plus a dedicated session on [DevCon 8: What to Expect](/presentations/devcon8).
 ## Portal Features
 
 - **📊 Presentations** — 5 slide decks you can present directly from the portal
-- **📝 Quizzes** — Topic quizzes with shuffled questions and on-chain score tracking
+- **📝 Anti-Cheat Quizzes** — Server-side grading with 100+ question pools, 30s timer, one-attempt-only per quiz, and tamper-proof on-chain scoring
 - **⚔️ Workshop Quests** — Hands-on Solidity tutorials (deploy real smart contracts!)
 - **🏆 Leaderboard** — Live, on-chain leaderboard powered by a Solidity smart contract on Sepolia
-- **🔗 Wallet Integration** — Connect MetaMask to submit scores and track progress
+- **🔗 Wallet Integration** — Connect MetaMask, register your identity on-chain, and scores mapping
 
 ## Quick Links
 

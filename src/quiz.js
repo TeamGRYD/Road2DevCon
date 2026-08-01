@@ -1,179 +1,194 @@
 import { ethers } from 'ethers';
-import { quizQuestions } from './data/quizQuestions.js';
 import { getSigner, getAddress, isConnected, connectWallet } from './wallet.js';
 import { QUIZ_SCORES_ABI, CONTRACT_ADDRESS } from './abi.js';
 
-// =================== SCORING CONSTANTS ===================
-const BASE_POINTS = 100;
-const MAX_TIME_BONUS = 100;
-const TIME_DECAY_RATE = 4; // Points lost per second
+// =================== CONSTANTS ===================
+const HARD_TIMER_SECONDS = 30;
 const QUESTIONS_PER_QUIZ = 10;
+const MAX_POINTS_PER_QUESTION = 200;
 
 // =================== STATE ===================
-let currentQuiz = null;
-let shuffledQuestions = [];
+let currentQuizId = null;
+let sessionJwt = null;
+let questions = [];
 let currentQuestionIndex = 0;
-let quizScore = 0;
-let questionStartTime = 0;
-let correctCount = 0;
-let participantName = '';
-let participantX = '';
+let totalQuestions = 0;
 let quizTimerInterval = null;
+let questionStartTime = 0;
+let answerPending = false; // prevent double-clicks
 
 // =================== PUBLIC API ===================
 
-export function startQuiz(quizId) {
-  const quizData = quizQuestions.find(q => q.quizId === quizId);
-  if (!quizData) return;
+export async function startQuiz(quizId) {
+  currentQuizId = quizId;
 
-  currentQuiz = quizData;
-  currentQuestionIndex = 0;
-  quizScore = 0;
-  correctCount = 0;
-
-  // Shuffle questions + shuffle options within each question
-  shuffledQuestions = shuffleArray([...quizData.questions]).map(q => {
-    const { shuffledOptions, newCorrectIndex } = shuffleOptions(q.options, q.correct);
-    return { ...q, options: shuffledOptions, correct: newCorrectIndex };
-  });
-
-  showRegistrationModal(quizId);
-}
-
-// =================== SHUFFLE UTILITIES ===================
-
-function shuffleArray(arr) {
-  // Fisher-Yates shuffle
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+  // Must be connected + registered
+  if (!isConnected()) {
+    window.dispatchEvent(new CustomEvent('app-notification', {
+      detail: { message: 'Please connect your wallet and register before taking a quiz.', type: 'error' }
+    }));
+    return;
   }
-  return arr;
+
+  // Check if already attempted (client-side quick check)
+  const addr = getAddress();
+  const attemptedKey = `quiz_attempted_${quizId}_${addr?.toLowerCase()}`;
+  if (localStorage.getItem(attemptedKey)) {
+    showAlreadyAttempted(quizId);
+    return;
+  }
+
+  showQuizLoading(quizId);
+
+  try {
+    // Request questions from server
+    const resp = await fetch('/api/quiz/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ walletAddress: addr, quizId })
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      if (data.error?.includes('already attempted')) {
+        localStorage.setItem(attemptedKey, 'true');
+        showAlreadyAttempted(quizId);
+        return;
+      }
+      throw new Error(data.error || 'Failed to start quiz');
+    }
+
+    // Store session
+    sessionJwt = data.jwt;
+    questions = data.questions;
+    totalQuestions = data.totalQuestions;
+    currentQuestionIndex = 0;
+    answerPending = false;
+
+    showQuizIntro(quizId);
+  } catch (err) {
+    console.error('Failed to start quiz:', err);
+    showQuizError(err.message);
+  }
 }
 
-function shuffleOptions(options, correctIndex) {
-  // Create array of {text, isCorrect} to track correct answer through shuffle
-  const tagged = options.map((text, i) => ({ text, isCorrect: i === correctIndex }));
-  const shuffled = shuffleArray([...tagged]);
-  return {
-    shuffledOptions: shuffled.map(t => t.text),
-    newCorrectIndex: shuffled.findIndex(t => t.isCorrect)
-  };
-}
+// =================== LOADING STATE ===================
 
-// =================== REGISTRATION MODAL ===================
-
-function showRegistrationModal(quizId) {
+function showQuizLoading(quizId) {
   const modal = document.getElementById('quiz-modal');
   const content = document.getElementById('quiz-modal-content');
-  const quizData = quizQuestions.find(q => q.quizId === quizId);
 
   content.innerHTML = `
-    <div class="quiz-registration">
+    <div class="quiz-loading">
       <button class="modal-close" id="quiz-modal-close">&times;</button>
-      <div class="quiz-reg-icon">${quizData.icon}</div>
-      <h2>Quiz ${quizId + 1}: ${quizData.title}</h2>
-      <p class="quiz-reg-subtitle">Test your knowledge! Answer faster for bonus points.</p>
-      
-      <div class="quiz-reg-form">
-        <div class="form-group">
-          <label for="quiz-name">Your Name <span class="required">*</span></label>
-          <input type="text" id="quiz-name" placeholder="Enter your full name" required autocomplete="name" />
-        </div>
-        <div class="form-group">
-          <label for="quiz-x-username">X (Twitter) Username <span class="required">*</span></label>
-          <div class="input-with-prefix">
-            <span class="input-prefix">@</span>
-            <input type="text" id="quiz-x-username" placeholder="username" required />
-          </div>
-        </div>
-      </div>
-
-      <div class="quiz-scoring-info">
-        <h4>⏱️ Scoring System</h4>
-        <ul>
-          <li><strong>Correct answer:</strong> 100 base points</li>
-          <li><strong>Speed bonus:</strong> Up to +100 points (faster = more!)</li>
-          <li><strong>Max per question:</strong> 200 points</li>
-          <li><strong>Max per quiz:</strong> 2,000 points</li>
-        </ul>
-      </div>
-
-      <button class="btn btn-primary btn-lg quiz-start-btn" id="quiz-start-btn">
-        🚀 Start Quiz
-      </button>
-      <p class="quiz-reg-note">${QUESTIONS_PER_QUIZ} questions · Multiple choice · Questions are shuffled</p>
+      <div class="quiz-loading-spinner"></div>
+      <h2>Preparing Quiz ${quizId + 1}...</h2>
+      <p>Selecting your questions from the question pool...</p>
     </div>
   `;
 
   modal.classList.add('active');
   document.body.style.overflow = 'hidden';
-
-  // Check for previously stored name/username
-  const savedName = localStorage.getItem('quiz_name') || '';
-  const savedX = localStorage.getItem('quiz_x') || '';
-  document.getElementById('quiz-name').value = savedName;
-  document.getElementById('quiz-x-username').value = savedX;
-
   document.getElementById('quiz-modal-close').onclick = closeQuizModal;
-  document.getElementById('quiz-start-btn').onclick = () => {
-    const name = document.getElementById('quiz-name').value.trim();
-    const xUser = document.getElementById('quiz-x-username').value.trim();
-
-    if (!name) {
-      shakeInput('quiz-name');
-      return;
-    }
-    if (!xUser) {
-      shakeInput('quiz-x-username');
-      return;
-    }
-
-    participantName = name;
-    participantX = xUser.startsWith('@') ? xUser.slice(1) : xUser;
-
-    // Save for next quiz
-    localStorage.setItem('quiz_name', participantName);
-    localStorage.setItem('quiz_x', participantX);
-
-    showQuestion();
-  };
-
-  // Allow Enter key
-  content.querySelectorAll('input').forEach(input => {
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') document.getElementById('quiz-start-btn').click();
-    });
-  });
 }
 
-function shakeInput(id) {
-  const el = document.getElementById(id);
-  el.classList.add('shake');
-  el.focus();
-  setTimeout(() => el.classList.remove('shake'), 500);
+function showQuizError(message) {
+  const content = document.getElementById('quiz-modal-content');
+  content.innerHTML = `
+    <div class="quiz-error">
+      <button class="modal-close" id="quiz-modal-close">&times;</button>
+      <div class="quiz-error-icon">❌</div>
+      <h2>Unable to Start Quiz</h2>
+      <p class="quiz-error-message">${message}</p>
+      <button class="btn btn-primary" id="quiz-error-close">Close</button>
+    </div>
+  `;
+  document.getElementById('quiz-modal-close').onclick = closeQuizModal;
+  document.getElementById('quiz-error-close').onclick = closeQuizModal;
+}
+
+function showAlreadyAttempted(quizId) {
+  const modal = document.getElementById('quiz-modal');
+  const content = document.getElementById('quiz-modal-content');
+
+  content.innerHTML = `
+    <div class="quiz-already-attempted">
+      <button class="modal-close" id="quiz-modal-close">&times;</button>
+      <div class="quiz-attempted-icon">🚫</div>
+      <h2>Already Attempted</h2>
+      <p>You have already attempted Quiz ${quizId + 1}. Each quiz can only be taken once per wallet.</p>
+      <p class="quiz-attempted-note">Check the leaderboard to see your score!</p>
+      <button class="btn btn-primary" id="quiz-attempted-close">Close</button>
+    </div>
+  `;
+
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('quiz-modal-close').onclick = closeQuizModal;
+  document.getElementById('quiz-attempted-close').onclick = closeQuizModal;
+}
+
+// =================== QUIZ INTRO (rules before start) ===================
+
+function showQuizIntro(quizId) {
+  const content = document.getElementById('quiz-modal-content');
+
+  content.innerHTML = `
+    <div class="quiz-registration">
+      <button class="modal-close" id="quiz-modal-close">&times;</button>
+      <div class="quiz-reg-icon">🧠</div>
+      <h2>Quiz ${quizId + 1} Ready!</h2>
+      <p class="quiz-reg-subtitle">${totalQuestions} questions selected from the question pool.</p>
+
+      <div class="quiz-scoring-info">
+        <h4>📋 Quiz Rules</h4>
+        <ul>
+          <li><strong>⏱️ 30 seconds</strong> per question (hard limit)</li>
+          <li><strong>⚡ Speed bonus:</strong> Faster answers earn more points</li>
+          <li><strong>📊 Max per question:</strong> 200 points (100 base + 100 speed)</li>
+          <li><strong>🏆 Max per quiz:</strong> 2,000 points</li>
+          <li><strong>🚫 No retakes:</strong> One attempt only!</li>
+          <li><strong>🔒 Score submitted on-chain</strong> after completion</li>
+        </ul>
+      </div>
+
+      <button class="btn btn-primary btn-lg quiz-start-btn" id="quiz-begin-btn">
+        🚀 Begin Quiz
+      </button>
+      <p class="quiz-reg-note">Questions are randomized. Timer starts immediately.</p>
+    </div>
+  `;
+
+  document.getElementById('quiz-modal-close').onclick = closeQuizModal;
+  document.getElementById('quiz-begin-btn').onclick = () => showQuestion();
 }
 
 // =================== QUESTION DISPLAY ===================
 
 function showQuestion() {
-  const content = document.getElementById('quiz-modal-content');
-  const q = shuffledQuestions[currentQuestionIndex];
-  const total = shuffledQuestions.length;
+  if (currentQuestionIndex >= questions.length) {
+    completeQuiz();
+    return;
+  }
 
+  const content = document.getElementById('quiz-modal-content');
+  const q = questions[currentQuestionIndex];
+  answerPending = false;
   questionStartTime = Date.now();
 
   content.innerHTML = `
     <div class="quiz-question-container">
       <div class="quiz-header">
         <div class="quiz-progress">
-          <span class="quiz-progress-text">Question ${currentQuestionIndex + 1} / ${total}</span>
+          <span class="quiz-progress-text">Question ${currentQuestionIndex + 1} / ${totalQuestions}</span>
           <div class="quiz-progress-bar">
-            <div class="quiz-progress-fill" style="width: ${((currentQuestionIndex + 1) / total) * 100}%"></div>
+            <div class="quiz-progress-fill" style="width: ${((currentQuestionIndex + 1) / totalQuestions) * 100}%"></div>
           </div>
         </div>
-        <div class="quiz-score-display">
-          Score: <span class="quiz-live-score">${quizScore}</span>
+        <div class="quiz-timer-countdown" id="quiz-timer-countdown">
+          <span class="timer-countdown-value" id="timer-countdown-value">${HARD_TIMER_SECONDS}</span>
+          <span class="timer-countdown-label">sec</span>
         </div>
       </div>
 
@@ -182,7 +197,7 @@ function showQuestion() {
           <path class="timer-ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
           <path class="timer-ring-fill" id="timer-ring-fill" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
         </svg>
-        <span class="timer-text" id="timer-text">0s</span>
+        <span class="timer-text" id="timer-text">${HARD_TIMER_SECONDS}s</span>
       </div>
 
       <h3 class="quiz-question-text">${q.question}</h3>
@@ -198,8 +213,8 @@ function showQuestion() {
     </div>
   `;
 
-  // Start timer animation
-  startTimer();
+  // Start countdown timer
+  startCountdownTimer();
 
   // Bind option clicks
   document.querySelectorAll('.quiz-option').forEach(btn => {
@@ -214,80 +229,217 @@ function showQuestion() {
   };
 }
 
-// =================== TIMER ===================
+// =================== COUNTDOWN TIMER (30s) ===================
 
-function startTimer() {
+function startCountdownTimer() {
   const fill = document.getElementById('timer-ring-fill');
   const text = document.getElementById('timer-text');
+  const countdownEl = document.getElementById('timer-countdown-value');
   if (!fill || !text) return;
 
   const circumference = 100;
   fill.style.strokeDasharray = `${circumference} ${circumference}`;
   fill.style.strokeDashoffset = '0';
 
-  const maxTime = 25;
-  let elapsed = 0;
-
   clearInterval(quizTimerInterval);
   quizTimerInterval = setInterval(() => {
-    elapsed = (Date.now() - questionStartTime) / 1000;
-    const progress = Math.min(elapsed / maxTime, 1);
-    fill.style.strokeDashoffset = `${progress * circumference}`;
-    text.textContent = `${Math.floor(elapsed)}s`;
+    const elapsed = (Date.now() - questionStartTime) / 1000;
+    const remaining = Math.max(0, HARD_TIMER_SECONDS - elapsed);
+    const progress = elapsed / HARD_TIMER_SECONDS;
 
-    if (elapsed > 20) {
+    fill.style.strokeDashoffset = `${Math.min(progress, 1) * circumference}`;
+    text.textContent = `${Math.ceil(remaining)}s`;
+    if (countdownEl) countdownEl.textContent = Math.ceil(remaining);
+
+    // Color changes
+    if (remaining <= 5) {
       fill.style.stroke = '#ef4444';
-    } else if (elapsed > 10) {
+      if (countdownEl) countdownEl.style.color = '#ef4444';
+    } else if (remaining <= 10) {
       fill.style.stroke = '#F97316';
+      if (countdownEl) countdownEl.style.color = '#F97316';
+    }
+
+    // Hard timer: auto-advance when time runs out
+    if (remaining <= 0) {
+      handleAnswer(-1); // -1 = no answer (timed out)
     }
   }, 100);
 }
 
-// =================== ANSWER HANDLING (NO FEEDBACK) ===================
+// =================== ANSWER HANDLING ===================
 
-function handleAnswer(selectedIndex) {
+async function handleAnswer(selectedIndex) {
+  if (answerPending) return; // prevent double submission
+  answerPending = true;
+
   clearInterval(quizTimerInterval);
   document.onkeydown = null;
 
-  const q = shuffledQuestions[currentQuestionIndex];
-  const timeTaken = (Date.now() - questionStartTime) / 1000;
-  const isCorrect = selectedIndex === q.correct;
-
-  // Calculate score
-  if (isCorrect) {
-    const timeBonus = Math.max(0, Math.floor(MAX_TIME_BONUS - (timeTaken * TIME_DECAY_RATE)));
-    quizScore += BASE_POINTS + timeBonus;
-    correctCount++;
+  // Visual feedback: mark selected
+  if (selectedIndex >= 0) {
+    const selectedBtn = document.getElementById(`quiz-opt-${selectedIndex}`);
+    if (selectedBtn) selectedBtn.classList.add('selected');
   }
 
-  // Brief "recorded" flash - no correct/wrong indication
-  const selectedBtn = document.getElementById(`quiz-opt-${selectedIndex}`);
-  if (selectedBtn) {
-    selectedBtn.classList.add('selected');
-    // Disable all buttons
-    document.querySelectorAll('.quiz-option').forEach(btn => {
-      btn.disabled = true;
-      btn.style.pointerEvents = 'none';
+  // Disable all buttons
+  document.querySelectorAll('.quiz-option').forEach(btn => {
+    btn.disabled = true;
+    btn.style.pointerEvents = 'none';
+  });
+
+  // Show brief "recording" state
+  const timerText = document.getElementById('timer-text');
+  if (timerText) timerText.textContent = '⏳';
+
+  try {
+    // Submit answer to server
+    const resp = await fetch('/api/quiz/answer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jwt: sessionJwt,
+        questionIndex: currentQuestionIndex,
+        selectedOption: selectedIndex
+      })
     });
-  }
 
-  // Move to next question after a short delay
-  setTimeout(() => {
-    currentQuestionIndex++;
-    if (currentQuestionIndex < shuffledQuestions.length) {
-      showQuestion();
-    } else {
-      showQuizResults();
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      throw new Error(data.error || 'Failed to record answer');
     }
-  }, 400);
+
+    // Update session JWT
+    sessionJwt = data.jwt;
+    currentQuestionIndex = data.questionNumber;
+
+    // Brief pause then next question
+    setTimeout(() => {
+      if (currentQuestionIndex < totalQuestions) {
+        showQuestion();
+      } else {
+        completeQuiz();
+      }
+    }, 300);
+
+  } catch (err) {
+    console.error('Failed to submit answer:', err);
+    // On error, still advance to prevent getting stuck
+    currentQuestionIndex++;
+    setTimeout(() => {
+      if (currentQuestionIndex < totalQuestions) {
+        showQuestion();
+      } else {
+        completeQuiz();
+      }
+    }, 300);
+  }
 }
 
-// =================== RESULTS (SCORE ONLY, NO BREAKDOWN) ===================
+// =================== QUIZ COMPLETION ===================
 
-function showQuizResults() {
+async function completeQuiz() {
   const content = document.getElementById('quiz-modal-content');
-  const maxScore = shuffledQuestions.length * (BASE_POINTS + MAX_TIME_BONUS);
-  const percentage = Math.round((quizScore / maxScore) * 100);
+
+  // Show "processing" state — score not revealed yet
+  content.innerHTML = `
+    <div class="quiz-submitting">
+      <div class="quiz-loading-spinner"></div>
+      <h2>Quiz Complete!</h2>
+      <p>Calculating your score and preparing on-chain submission...</p>
+      <p class="quiz-submit-note" id="submit-progress">⏳ Finalizing with the server...</p>
+    </div>
+  `;
+
+  try {
+    // Get signed score from server
+    const resp = await fetch('/api/quiz/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jwt: sessionJwt })
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      throw new Error(data.error || 'Failed to complete quiz');
+    }
+
+    // Now submit to blockchain — score is still hidden from user
+    const progressEl = document.getElementById('submit-progress');
+    if (progressEl) progressEl.textContent = '🔗 Submitting score on-chain... Please confirm in MetaMask.';
+
+    await submitScoreOnChain(data);
+
+  } catch (err) {
+    console.error('Quiz completion failed:', err);
+    showQuizError(`Failed to complete quiz: ${err.message}`);
+  }
+}
+
+// =================== ON-CHAIN SUBMISSION ===================
+
+async function submitScoreOnChain(serverData) {
+  const { score, correctCount, totalQuestions: total, quizId, signature, nonce } = serverData;
+  const content = document.getElementById('quiz-modal-content');
+  const maxScore = total * MAX_POINTS_PER_QUESTION;
+
+  if (!CONTRACT_ADDRESS) {
+    // No contract configured — show score without on-chain submission
+    showResults(score, correctCount, total, maxScore, null);
+    return;
+  }
+
+  if (!isConnected()) {
+    const connected = await connectWallet();
+    if (!connected) {
+      showResults(score, correctCount, total, maxScore, null);
+      return;
+    }
+  }
+
+  try {
+    const signerInstance = getSigner();
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, QUIZ_SCORES_ABI, signerInstance);
+
+    const progressEl = document.getElementById('submit-progress');
+    if (progressEl) progressEl.textContent = '⏳ Confirm the transaction in MetaMask...';
+
+    const tx = await contract.submitScore(quizId, score, nonce, signature);
+
+    if (progressEl) progressEl.textContent = '⏳ Transaction submitted! Waiting for confirmation...';
+
+    const receipt = await tx.wait();
+
+    // Mark as attempted in localStorage
+    const addr = getAddress();
+    localStorage.setItem(`quiz_attempted_${quizId}_${addr?.toLowerCase()}`, 'true');
+
+    // NOW show the score (only after on-chain confirmation)
+    showResults(score, correctCount, total, maxScore, receipt.hash);
+
+    // Refresh leaderboard
+    window.dispatchEvent(new CustomEvent('score-submitted'));
+
+  } catch (err) {
+    console.error('On-chain submission failed:', err);
+
+    if (err.code === 'ACTION_REJECTED' || err.code === 4001) {
+      // User rejected — show score anyway since server has it
+      showResults(score, correctCount, total, maxScore, null, 'Transaction rejected. Your score was not stored on-chain.');
+    } else {
+      showResults(score, correctCount, total, maxScore, null,
+        `On-chain submission failed: ${err.reason || err.message || 'Unknown error'}`);
+    }
+  }
+}
+
+// =================== RESULTS DISPLAY ===================
+
+function showResults(score, correctCount, total, maxScore, txHash, errorMsg = null) {
+  const content = document.getElementById('quiz-modal-content');
+  const percentage = Math.round((score / maxScore) * 100);
 
   let grade = '';
   if (percentage >= 90) grade = '🏆 Outstanding!';
@@ -295,12 +447,21 @@ function showQuizResults() {
   else if (percentage >= 50) grade = '👍 Good Effort!';
   else grade = '💪 Keep Learning!';
 
+  const txLink = txHash
+    ? `<a href="https://sepolia.etherscan.io/tx/${txHash}" target="_blank" rel="noopener" class="results-tx-link">View on Etherscan ↗</a>`
+    : '';
+
+  const statusBadge = txHash
+    ? '<span class="results-status success">✅ Stored On-Chain</span>'
+    : errorMsg
+      ? `<span class="results-status error">⚠️ ${errorMsg}</span>`
+      : '<span class="results-status warning">⚠️ Contract not configured</span>';
+
   content.innerHTML = `
     <div class="quiz-results">
       <button class="modal-close" id="quiz-modal-close">&times;</button>
       <div class="results-grade">${grade}</div>
-      <h2>Quiz ${currentQuiz.quizId + 1} Complete!</h2>
-      <p class="results-subtitle">${currentQuiz.title}</p>
+      <h2>Quiz ${currentQuizId + 1} Complete!</h2>
 
       <div class="results-score-ring">
         <svg viewBox="0 0 120 120">
@@ -309,14 +470,14 @@ function showQuizResults() {
             style="stroke-dasharray: ${(percentage / 100) * 339.292} 339.292" />
         </svg>
         <div class="score-ring-text">
-          <span class="score-ring-value">${quizScore}</span>
+          <span class="score-ring-value">${score}</span>
           <span class="score-ring-max">/ ${maxScore}</span>
         </div>
       </div>
 
       <div class="results-stats">
         <div class="stat-item">
-          <span class="stat-value">${correctCount}/${shuffledQuestions.length}</span>
+          <span class="stat-value">${correctCount}/${total}</span>
           <span class="stat-label">Correct</span>
         </div>
         <div class="stat-item">
@@ -325,88 +486,24 @@ function showQuizResults() {
         </div>
       </div>
 
+      ${statusBadge}
+      ${txLink}
+
       <div class="results-actions">
-        <button class="btn btn-primary btn-lg" id="submit-score-btn">
-          🔗 Submit Score On-Chain
-        </button>
-        <button class="btn btn-secondary" id="retake-quiz-btn">
-          🔄 Retake Quiz
-        </button>
-        <button class="btn btn-ghost" id="close-results-btn">
-          Close
-        </button>
+        <button class="btn btn-primary" id="results-leaderboard-btn">🏆 View Leaderboard</button>
+        <button class="btn btn-ghost" id="close-results-btn">Close</button>
       </div>
-      <p class="results-note" id="submit-note">Connect your wallet and submit your score to the Sepolia blockchain!</p>
+
+      <p class="results-no-retake">🚫 This quiz cannot be retaken.</p>
     </div>
   `;
 
   document.getElementById('quiz-modal-close').onclick = closeQuizModal;
   document.getElementById('close-results-btn').onclick = closeQuizModal;
-  document.getElementById('retake-quiz-btn').onclick = () => startQuiz(currentQuiz.quizId);
-  document.getElementById('submit-score-btn').onclick = () => submitScoreOnChain(currentQuiz.quizId, quizScore);
-}
-
-// =================== ON-CHAIN SUBMISSION ===================
-
-async function submitScoreOnChain(quizId, score) {
-  const submitBtn = document.getElementById('submit-score-btn');
-  const noteEl = document.getElementById('submit-note');
-
-  if (!CONTRACT_ADDRESS) {
-    noteEl.textContent = '⚠️ Contract not configured. Set VITE_CONTRACT_ADDRESS in environment.';
-    noteEl.style.color = '#F97316';
-    return;
-  }
-
-  if (!isConnected()) {
-    noteEl.textContent = '🔗 Connecting wallet...';
-    const connected = await connectWallet();
-    if (!connected) {
-      noteEl.textContent = '❌ Please connect your MetaMask wallet first.';
-      noteEl.style.color = '#ef4444';
-      return;
-    }
-  }
-
-  try {
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner"></span> Submitting...';
-    noteEl.textContent = '⏳ Confirm the transaction in MetaMask...';
-    noteEl.style.color = '#7235ED';
-
-    const signerInstance = getSigner();
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, QUIZ_SCORES_ABI, signerInstance);
-
-    const tx = await contract.registerAndSubmitScore(
-      participantName,
-      participantX,
-      quizId,
-      score
-    );
-
-    noteEl.textContent = '⏳ Transaction submitted! Waiting for confirmation...';
-
-    await tx.wait();
-
-    submitBtn.innerHTML = '✅ Score Submitted!';
-    submitBtn.classList.add('success');
-    noteEl.innerHTML = `✅ Score stored on-chain! <a href="https://sepolia.etherscan.io/tx/${tx.hash}" target="_blank" rel="noopener">View on Etherscan ↗</a>`;
-    noteEl.style.color = '#80DF98';
-
-    // Dispatch event to refresh leaderboard
-    window.dispatchEvent(new CustomEvent('score-submitted'));
-  } catch (err) {
-    console.error('Score submission failed:', err);
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = '🔗 Retry Submission';
-
-    if (err.code === 'ACTION_REJECTED' || err.code === 4001) {
-      noteEl.textContent = '❌ Transaction rejected. Click to retry.';
-    } else {
-      noteEl.textContent = `❌ Error: ${err.reason || err.message || 'Transaction failed'}`;
-    }
-    noteEl.style.color = '#ef4444';
-  }
+  document.getElementById('results-leaderboard-btn').onclick = () => {
+    closeQuizModal();
+    window.location.hash = '#/leaderboard';
+  };
 }
 
 // =================== MODAL MANAGEMENT ===================
@@ -417,4 +514,5 @@ function closeQuizModal() {
   document.body.style.overflow = '';
   document.onkeydown = null;
   clearInterval(quizTimerInterval);
+  sessionJwt = null;
 }

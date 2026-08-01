@@ -1,7 +1,7 @@
 import { presentations } from './data/presentations.js';
 import { quizQuestions } from './data/quizQuestions.js';
 import { workshopQuests } from './data/workshopQuests.js';
-import { connectWallet, initWalletListeners, isConnected, getAddress, shortenAddress } from './wallet.js';
+import { connectWallet, initWalletListeners, isConnected, isRegistered, getAddress, shortenAddress } from './wallet.js';
 import { startQuiz } from './quiz.js';
 import { loadLeaderboard, initLeaderboard } from './leaderboard.js';
 import { openSlidePresenter } from './slides.js';
@@ -194,7 +194,7 @@ function renderQuizzesPage(app) {
     <div class="page-container">
       <div class="page-header">
         <h1 class="page-title">🧠 Knowledge Quizzes</h1>
-        <p class="page-subtitle">Test your understanding: faster answers earn more points! Scores stored on-chain.</p>
+        <p class="page-subtitle">Test your understanding! 10 random questions per attempt, 30 seconds each. Scores stored on-chain.</p>
       </div>
       <div class="quiz-grid" id="quiz-grid"></div>
     </div>
@@ -207,9 +207,14 @@ function renderQuizzesPage(app) {
       <div class="quiz-card-icon">${q.icon}</div>
       <h3>Quiz ${q.quizId + 1}</h3>
       <p class="quiz-card-title">${q.title}</p>
+      <p class="quiz-card-desc">${q.description}</p>
       <div class="quiz-card-meta">
-        <span>${q.questions.length} Questions</span>
+        <span>10 Random Questions</span>
         <span>Max 2,000 pts</span>
+      </div>
+      <div class="quiz-card-rules">
+        <span>⏱️ 30s/question</span>
+        <span>🚫 One attempt</span>
       </div>
       <button class="btn btn-primary quiz-take-btn" data-quiz-id="${q.quizId}">
         Take Quiz →

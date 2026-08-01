@@ -1,22 +1,33 @@
-// ABI for QuizScores.sol - generated from the contract interface
+// ABI for QuizScores.sol (v2 with registration + signature verification)
 // Update this if you modify the contract
 export const QUIZ_SCORES_ABI = [
+  // ============ REGISTRATION ============
   {
     "inputs": [
       { "internalType": "string", "name": "_name", "type": "string" },
-      { "internalType": "string", "name": "_xUsername", "type": "string" },
-      { "internalType": "uint8", "name": "_quizId", "type": "uint8" },
-      { "internalType": "uint256", "name": "_score", "type": "uint256" }
+      { "internalType": "string", "name": "_xUsername", "type": "string" }
     ],
-    "name": "registerAndSubmitScore",
+    "name": "register",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
+  // ============ SCORE SUBMISSION ============
   {
     "inputs": [
-      { "internalType": "address", "name": "_wallet", "type": "address" }
+      { "internalType": "uint8", "name": "_quizId", "type": "uint8" },
+      { "internalType": "uint256", "name": "_score", "type": "uint256" },
+      { "internalType": "uint256", "name": "_nonce", "type": "uint256" },
+      { "internalType": "bytes", "name": "_signature", "type": "bytes" }
     ],
+    "name": "submitScore",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  // ============ VIEW FUNCTIONS ============
+  {
+    "inputs": [{ "internalType": "address", "name": "_wallet", "type": "address" }],
     "name": "getParticipant",
     "outputs": [
       { "internalType": "string", "name": "name", "type": "string" },
@@ -27,31 +38,40 @@ export const QUIZ_SCORES_ABI = [
     "type": "function"
   },
   {
-    "inputs": [
-      { "internalType": "address", "name": "_wallet", "type": "address" }
-    ],
+    "inputs": [{ "internalType": "address", "name": "_wallet", "type": "address" }],
     "name": "isRegistered",
-    "outputs": [
-      { "internalType": "bool", "name": "", "type": "bool" }
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "", "type": "address" },
+      { "internalType": "uint8", "name": "", "type": "uint8" }
     ],
+    "name": "hasAttempted",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "name": "nonces",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [],
     "name": "getAllParticipants",
-    "outputs": [
-      { "internalType": "address[]", "name": "", "type": "address[]" }
-    ],
+    "outputs": [{ "internalType": "address[]", "name": "", "type": "address[]" }],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [],
     "name": "getParticipantCount",
-    "outputs": [
-      { "internalType": "uint256", "name": "", "type": "uint256" }
-    ],
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
     "stateMutability": "view",
     "type": "function"
   },
@@ -71,17 +91,13 @@ export const QUIZ_SCORES_ABI = [
     "type": "function"
   },
   {
-    "anonymous": false,
-    "inputs": [
-      { "indexed": true, "internalType": "address", "name": "wallet", "type": "address" },
-      { "indexed": false, "internalType": "string", "name": "name", "type": "string" },
-      { "indexed": false, "internalType": "string", "name": "xUsername", "type": "string" },
-      { "indexed": false, "internalType": "uint8", "name": "quizId", "type": "uint8" },
-      { "indexed": false, "internalType": "uint256", "name": "score", "type": "uint256" }
-    ],
-    "name": "ScoreSubmitted",
-    "type": "event"
+    "inputs": [],
+    "name": "admin",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
   },
+  // ============ EVENTS ============
   {
     "anonymous": false,
     "inputs": [
@@ -90,6 +106,16 @@ export const QUIZ_SCORES_ABI = [
       { "indexed": false, "internalType": "string", "name": "xUsername", "type": "string" }
     ],
     "name": "ParticipantRegistered",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "wallet", "type": "address" },
+      { "indexed": false, "internalType": "uint8", "name": "quizId", "type": "uint8" },
+      { "indexed": false, "internalType": "uint256", "name": "score", "type": "uint256" }
+    ],
+    "name": "ScoreSubmitted",
     "type": "event"
   }
 ];
