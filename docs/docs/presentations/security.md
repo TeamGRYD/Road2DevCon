@@ -144,6 +144,96 @@ When 5 out of 9 keys are controlled by related entities, you don't really have a
 
 ---
 
+## 📖 Extended Learning
+
+:::info
+The sections below go deeper than the 25-minute presentation. They're designed for self-study so you can prepare for **Quiz 4 (Security)**, which draws from this entire page including the extended material.
+:::
+
+### MEV (Maximal Extractable Value)
+
+**MEV** is the profit validators (or block builders) can extract by reordering, inserting, or censoring transactions within a block. It's one of the most significant security and fairness challenges in Ethereum today.
+
+**Common MEV attacks:**
+
+| Attack | How It Works |
+|--------|-------------|
+| **Front-running** | Attacker sees your profitable pending tx, submits the same tx with higher gas to execute first |
+| **Sandwich attack** | Attacker places one tx *before* yours (front-run) and one *after* (back-run) to profit from the price impact |
+| **Back-running** | Attacker places their tx immediately after yours to capture arbitrage opportunities you created |
+| **Liquidation sniping** | Bots compete to be first to liquidate undercollateralized DeFi positions |
+
+**The solution ecosystem:**
+
+- **Flashbots Protect**: A private mempool that prevents front-running by hiding your pending tx from public view
+- **MEV-Boost**: Separates block building from proposing — validators outsource block construction to specialized "builders" via an auction
+- **PBS (Proposer-Builder Separation)**: A protocol-level design where proposers (validators) only select blocks, not construct them
+- **Private Order Flow**: Services that route transactions directly to validators, bypassing the public mempool
+
+### Proxy Patterns & Upgradability
+
+Smart contracts are immutable, but what if you need to fix a bug? **Proxy patterns** enable "upgradeable" contracts:
+
+**How it works**: Users interact with a **proxy contract** that delegates all calls (`delegatecall`) to a separate **implementation contract**. To "upgrade," you deploy a new implementation and point the proxy at it. The proxy's storage is preserved.
+
+| Pattern | Description | Risk |
+|---------|-------------|------|
+| **Transparent Proxy** | Admin can upgrade, users can only call logic | Admin key compromise = full control |
+| **UUPS (Universal Upgradeable Proxy Standard)** | Upgrade logic lives in the implementation contract | If you forget the upgrade function, the contract is permanently locked |
+| **Beacon Proxy** | Multiple proxies share a single beacon for upgrades | Single point of failure for all proxies |
+
+**Storage collision** is the most dangerous risk: if the proxy and implementation use the same storage slot for different variables, data gets corrupted silently. EIP-1967 standardizes storage slot positions to prevent this.
+
+**Diamond Pattern (EIP-2535)**: Allows a single proxy to delegate to multiple implementation contracts ("facets"), enabling modular upgrades.
+
+### Advanced Testing & Formal Verification
+
+Beyond unit tests, advanced techniques catch bugs that manual testing misses:
+
+- **Fuzzing (Fuzz Testing)**: Automated tool generates random inputs and checks if invariants are violated. Foundry's `forge fuzz` and [Echidna](https://github.com/crytic/echidna) are leading tools.
+- **Invariant Testing**: Define properties that must ALWAYS hold (e.g., "total supply equals sum of all balances") and let the fuzzer try to break them.
+- **Symbolic Execution (Mythril)**: Explores ALL possible execution paths mathematically, finding bugs in code paths you never thought to test.
+- **Formal Verification**: Uses mathematical proofs to guarantee code behaves as specified. [Certora](https://www.certora.com/) and the [K Framework](https://kframework.org/) are leading tools. This is the gold standard — but expensive and slow.
+
+**Coverage spectrum**: Unit tests < Integration tests < Fuzz tests < Symbolic execution < Formal verification
+
+### More Attack Case Studies
+
+| Hack | Year | Amount | Vulnerability |
+|------|------|--------|---------------|
+| **Wormhole Bridge** | 2022 | $320M | Attacker bypassed signature verification by calling a deprecated function that returned a valid "guardian set" |
+| **Parity Multi-sig** | 2017 | $150M | A user accidentally became the "owner" of the library contract and called `selfdestruct`, destroying all Parity multi-sig wallets |
+| **Cream Finance** | 2021 | $130M | Flash loan oracle manipulation — attacker inflated the price of a collateral token and borrowed against the inflated value |
+| **Poly Network** | 2021 | $611M | Cross-chain message could change the `keeper` role, granting full control |
+| **Nomad Bridge** | 2022 | $190M | Faulty upgrade made every message valid — anyone could copy a successful tx, change the recipient, and replay it |
+
+### Rug Pulls & Economic Attacks
+
+Not all attacks are technical — some are social or economic:
+
+- **Rug Pull**: Project creator deploys a token, generates hype, collects investment, then removes all liquidity or sells their allocation. A purely social/economic attack.
+- **Honeypot**: Token contract that allows buying but prevents selling through hidden `transfer()` restrictions.
+- **Flash Loan Attack**: Borrowing a massive amount of tokens in a single transaction (no collateral needed), manipulating prices, profiting, and repaying the loan — all in one atomic transaction.
+- **Governance Attack**: Accumulating enough governance tokens (via flash loan or market purchase) to pass a malicious proposal that drains the treasury.
+
+**How to protect yourself**: Check if the contract is verified on Etherscan, look for locked liquidity, use tools like [Token Sniffer](https://tokensniffer.com/) or [RugDoc](https://rugdoc.io/).
+
+### Gas-Based Attacks
+
+Gas mechanics create unique attack vectors:
+
+- **Gas Griefing**: Attacker causes a function to consume excessive gas by making external calls fail or triggering expensive loops. For example, a contract that iterates over an array controlled by users — an attacker can grow the array until the function exceeds the block gas limit.
+- **Block Stuffing**: Attacker fills entire blocks with their own transactions to prevent competing transactions from being included (used in MEV).
+- **Denial of Service (DoS)**: If a contract sends ETH to an address that rejects it (`receive()` reverts), the entire function fails. The "Pull over Push" pattern prevents this.
+
+### Function Selector Collisions
+
+Every function call in Solidity is identified by the first 4 bytes of the `keccak256` hash of its signature. A **function selector collision** occurs when two different function signatures produce the same 4-byte selector.
+
+In proxy contracts, this can be exploited: if a proxy function and an implementation function have the same selector, the proxy intercepts the call. The transparent proxy pattern mitigates this by routing admin calls and user calls differently.
+
+---
+
 ## Key Concepts
 
 | Concept | Definition |
@@ -154,19 +244,33 @@ When 5 out of 9 keys are controlled by related entities, you don't really have a
 | **Front-Running** | Inserting a transaction before a known pending transaction |
 | **Oracle** | External data feed used by smart contracts (e.g., price data) |
 | **Bug Bounty** | Reward program for finding and reporting vulnerabilities |
+| **MEV** | Profit extracted by reordering/inserting transactions in a block |
+| **Proxy Pattern** | Delegatecall-based upgradability for immutable contracts |
+| **Storage Collision** | When proxy and implementation use the same storage slot for different data |
+| **Fuzzing** | Automated random-input testing to discover invariant violations |
+| **Formal Verification** | Mathematical proof that code meets its specification |
+| **Flash Loan** | Uncollateralized loan that must be repaid within a single transaction |
+| **Rug Pull** | Creator deploys, hypes, then drains a project's funds |
 
 ## Further Reading
 
 - [Ethereum Smart Contract Security Best Practices](https://consensys.github.io/smart-contract-best-practices/) — ConsenSys guide
 - [SWC Registry](https://swcregistry.io/) — Smart Contract Weakness Classification
-- [Damn Vulnerable DeFi](https://www.damnvulnerabledefi.xyz/) — Practice exploiting vulnerabilities (CTF)
-- [Ethernaut](https://ethernaut.openzeppelin.com/) — OpenZeppelin's Solidity wargame
+- [Damn Vulnerable DeFi](https://www.damnvulnerabledefi.xyz/) — CTF for learning smart contract exploits
+- [Ethernaut](https://ethernaut.openzeppelin.com/) — OpenZeppelin's Solidity security wargame
 - [Rekt News](https://rekt.news/) — Post-mortems of crypto hacks
 - [Cyfrin Updraft](https://updraft.cyfrin.io/) — Free smart contract security course
 - [Trail of Bits Blog](https://blog.trailofbits.com/) — Security research articles
 - [OpenZeppelin Docs](https://docs.openzeppelin.com/) — Audited contract library
 - [Immunefi Bug Bounty](https://immunefi.com/) — Earn rewards for finding bugs
 - [Slither Documentation](https://github.com/crytic/slither/wiki) — Static analysis tool
+- [Mythril](https://github.com/Consensys/mythril) — Symbolic execution engine
+- [Echidna](https://github.com/crytic/echidna) — Smart contract fuzzer
+- [Flashbots](https://www.flashbots.net/) — MEV research and protection
+- [EIP-1967: Proxy Storage Slots](https://eips.ethereum.org/EIPS/eip-1967) — Standard proxy storage layout
+- [EIP-2535: Diamond Standard](https://eips.ethereum.org/EIPS/eip-2535) — Multi-facet proxy pattern
+- [Certora](https://www.certora.com/) — Formal verification platform
+- [Foundry Fuzz Testing](https://book.getfoundry.sh/forge/fuzz-testing) — Foundry's fuzzing guide
 
 ## Discussion Questions
 
@@ -174,3 +278,5 @@ When 5 out of 9 keys are controlled by related entities, you don't really have a
 2. How does the DAO hack compare to traditional software breaches?
 3. What would you do differently if you were designing the Ronin bridge's validator setup?
 4. Why is "Pull over Push" safer than sending funds directly to users?
+5. How does MEV affect the fairness of DeFi for regular users? Is it a bug or a feature?
+6. If you can upgrade a smart contract via a proxy, does it still count as "trustless"?

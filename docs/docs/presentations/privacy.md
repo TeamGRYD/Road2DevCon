@@ -138,6 +138,73 @@ ZK technology is one of the most active areas of research in computer science an
 
 ---
 
+## 📖 Extended Learning
+
+:::info
+The sections below go deeper than the 25-minute presentation. They're designed for self-study so you can prepare for **Quiz 3 (Privacy)**, which draws from this entire page including the extended material.
+:::
+
+### Advanced Privacy Techniques
+
+Beyond ZKPs, several other cryptographic techniques enable privacy:
+
+**Multi-Party Computation (MPC)** allows multiple parties to jointly compute a function over their private inputs without revealing those inputs to each other. For example, two companies could determine which customers they share *without* either revealing their full customer list. MPC is used in threshold wallets (e.g., Fireblocks) where multiple parties hold key shares.
+
+**Stealth Addresses** are one-time addresses generated for each transaction so the recipient's public address never appears on-chain. The sender uses the recipient's public "meta-address" to derive a fresh address for each payment. Vitalik Buterin proposed [EIP-5564](https://eips.ethereum.org/EIPS/eip-5564) to standardize stealth addresses on Ethereum.
+
+**Fully Homomorphic Encryption (FHE)** is considered the "holy grail" of privacy — it enables computation on encrypted data without ever decrypting it. Imagine a smart contract that processes your encrypted medical records and outputs an encrypted result that only you can decrypt. FHE is currently too slow for practical use but is advancing rapidly (projects like Zama, Fhenix).
+
+**Mixers** (like the now-sanctioned Tornado Cash) break the link between sender and receiver by pooling deposits together. When you withdraw, the protocol uses ZK proofs to prove you deposited *some amount* without revealing which deposit was yours. The concept is called a **shielded pool** — an encrypted pool of assets where balances and transfers are hidden.
+
+### Privacy Coins & Protocols
+
+Different blockchains take different approaches to privacy:
+
+| Protocol | Technique | How It Works |
+|----------|-----------|-------------|
+| **Monero** | Ring signatures + RingCT + stealth addresses | Every transaction mixes the real input with decoys (ring signature), hides amounts (RingCT), and generates one-time recipient addresses |
+| **Zcash** | zk-SNARKs | Fully shielded transactions hide sender, receiver, and amount using zero-knowledge proofs |
+| **Railgun** | zk-SNARKs on Ethereum | Smart contract privacy system that shields ERC-20 transfers without leaving Ethereum |
+| **Aztec Network** | ZK-rollup | Privacy-focused L2 enabling private smart contracts using "Noir" circuits |
+
+A **ring signature** proves a message was signed by *someone* in a group without revealing which member signed it — like having 10 people put their hands in a circle, and only one pushes the button, but no observer can tell who. **RingCT** (Ring Confidential Transactions) extends this to hide amounts while still allowing the network to verify inputs equal outputs.
+
+### Privacy-Preserving Identity
+
+Privacy extends beyond financial transactions to *identity itself*:
+
+- **Decentralized Identifiers (DIDs)**: Globally unique identifiers (like `did:ethr:0x1234...`) that enable verifiable digital identity *without* a central authority. You control your DID — no company can revoke it.
+- **Verifiable Credentials**: Cryptographically signed claims (e.g., "this person has a degree from X university") that can be verified by anyone without contacting the issuer.
+- **Soulbound Tokens (SBTs)**: Non-transferable NFTs proposed by Vitalik Buterin that represent identity, credentials, or affiliations bound to a specific wallet. They can encode reputation, membership, or qualifications on-chain.
+- **Self-Sovereign Identity (SSI)**: An identity model where individuals fully own and control their personal data without relying on centralized authorities like governments or companies.
+
+**ZKPs + Identity**: ZKPs can prove claims about identity without revealing underlying data. For example, proving "I am over 18" without revealing your exact birthday, or proving "I am a citizen of India" without revealing your passport number.
+
+### Privacy & Regulation
+
+The intersection of privacy technology and law creates fascinating tension:
+
+**GDPR (General Data Protection Regulation)** — EU law that gives individuals the "right to be forgotten" (data deletion). This conflicts directly with blockchain's immutability. Solutions include storing personal data off-chain with only hashes on-chain, enabling deletion of the off-chain data.
+
+**OFAC & Tornado Cash** — In August 2022, the US Treasury's Office of Foreign Assets Control (OFAC) sanctioned Tornado Cash smart contract addresses. This was the first time code (not a person or company) was sanctioned. It raised fundamental questions: can you sanction open-source code that runs autonomously? Several validators began censoring Tornado Cash transactions, though the smart contract itself kept running.
+
+**Selective disclosure** is the principle of sharing only specific pieces of personal information required for a given interaction. Instead of showing your full ID to prove your age, you'd prove only the single fact needed. This is the promise of ZKP-based identity systems.
+
+**"Nothing to hide" fallacy**: Privacy is important even when you have "nothing to hide." It protects against future policy changes, data breaches, discrimination, and power imbalances. As Bruce Schneier wrote: "Saying you don't care about privacy because you have nothing to hide is like saying you don't care about free speech because you have nothing to say."
+
+### Technical Privacy Concepts
+
+These concepts appear in advanced privacy systems:
+
+- **Nullifiers**: In ZK systems (like Tornado Cash), a nullifier is a unique value derived from your private inputs that prevents double-spending. You submit the nullifier when withdrawing — the system checks it hasn't been used before, but can't link it to your deposit.
+- **Differential Privacy**: A mathematical framework for adding carefully calibrated noise to data so that individual records are protected while statistical patterns are preserved. Used by Apple and Google in analytics.
+- **Accumulators**: Compact cryptographic structures that represent a large set and can prove membership *without* revealing the set. Used in anonymous credential systems.
+- **Onion Routing (Tor)**: Encrypting messages in multiple layers, each "peeled" by a different relay node, so no single node knows both the sender and the destination. The name "Tor" stands for "The Onion Router."
+- **k-Anonymity**: A privacy model where each record in a dataset is indistinguishable from at least *k-1* other records, preventing re-identification.
+- **Plausible Deniability**: The ability to deny involvement in a transaction because an observer cannot definitively prove your participation — ring signatures provide this by design.
+
+---
+
 ## Key Concepts
 
 | Concept | Definition |
@@ -149,17 +216,28 @@ ZK technology is one of the most active areas of research in computer science an
 | **Commit-Reveal** | Two-phase scheme: submit hash first, reveal data later |
 | **Pseudonymity** | Using a consistent alias (wallet address) without real identity |
 | **Semaphore** | Protocol for anonymous group membership proofs |
+| **MPC** | Multiple parties compute a function without revealing individual inputs |
+| **Stealth Address** | One-time address generated per transaction to hide the recipient |
+| **FHE** | Fully Homomorphic Encryption — compute on encrypted data |
+| **DID** | Decentralized Identifier — self-owned digital identity |
+| **SBT** | Soulbound Token — non-transferable NFT representing identity/credentials |
+| **Nullifier** | Value preventing double-spending in ZK systems without revealing identity |
 
 ## Further Reading
 
 - [ZKPs Explained — ethereum.org](https://ethereum.org/en/zero-knowledge-proofs/) — Official introduction to ZK proofs
 - [What Are ZK-Rollups?](https://ethereum.org/en/developers/docs/scaling/zk-rollups/) — Layer 2 scaling explainer
 - [Vitalik: An Incomplete Guide to Rollups](https://vitalik.eth.limo/general/2021/01/05/rollup.html) — Deep dive from Vitalik
+- [EIP-5564: Stealth Addresses](https://eips.ethereum.org/EIPS/eip-5564) — Stealth address standard
+- [Vitalik: An Incomplete Guide to Stealth Addresses](https://vitalik.eth.limo/general/2023/01/20/stealth.html) — Deep dive on stealth addresses
+- [Soulbound Tokens Paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4105763) — Vitalik et al. on SBTs
+- [GDPR and Blockchain](https://www.europarl.europa.eu/RegData/etudes/STUD/2019/634445/EPRS_STU(2019)634445_EN.pdf) — EU Parliament study
 - [ZK Podcast](https://zeroknowledge.fm/) — Interviews with ZK researchers
 - [Circom Language](https://docs.circom.io/) — Write ZK circuits
 - [Noir Language](https://noir-lang.org/) — Aztec's ZK DSL
 - [Semaphore Protocol](https://semaphore.pse.dev/) — Anonymous signaling
 - [Railgun](https://railgun.org/) — Private transactions on Ethereum
+- [Monero Research](https://www.getmonero.org/resources/research-lab/) — Ring signature research
 - [Puttaswamy Judgment](https://indiankanoon.org/doc/127517806/) — India's privacy ruling
 - [Commit-Reveal Pattern](https://medium.com/coinmonks/commit-reveal-scheme-in-solidity-c06eba032240) — Implementing the pattern in Solidity
 
@@ -169,3 +247,6 @@ ZK technology is one of the most active areas of research in computer science an
 2. How would you explain Zero-Knowledge Proofs to a non-technical person?
 3. Can you think of a real-world scenario where commit-reveal would be useful outside of voting?
 4. How does India's Puttaswamy judgment relate to blockchain privacy?
+5. Should code (like Tornado Cash) be sanctionable? What are the implications for open-source development?
+6. How could stealth addresses and SBTs coexist — one hides identity while the other binds to it?
+

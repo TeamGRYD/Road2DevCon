@@ -89,10 +89,69 @@ As engineering students, you build systems. Understanding how to design for dece
 
 ---
 
+## 📖 Extended Learning
+
+:::info
+The sections below go deeper than the 25-minute presentation. They're designed for self-study so you can prepare for **Quiz 1 (Censorship Resistance)**, which draws from this entire page including the extended material.
+:::
+
+### Cryptography Basics
+
+Blockchains rely on fundamental cryptographic primitives:
+
+- **Hash Functions**: A hash function (like SHA-256 or Keccak-256) takes any input and produces a fixed-size output (the "hash" or "digest"). It's a one-way function — you can't reverse a hash to find the input. Even a tiny change in input produces a completely different hash. Ethereum uses Keccak-256 extensively.
+- **Public-Key Cryptography**: Every Ethereum address is derived from a public key, which is derived from a private key using elliptic curve mathematics (specifically, the secp256k1 curve — the same one Bitcoin uses). Your private key signs transactions, and anyone can verify the signature using your public key.
+- **Digital Signatures**: When you sign a transaction in MetaMask, you're using ECDSA (Elliptic Curve Digital Signature Algorithm) to create a signature that proves you control the private key associated with your address, without revealing the private key itself.
+- **Merkle Trees**: A data structure where every leaf node is the hash of a data block, and every non-leaf node is the hash of its children. Ethereum uses Merkle-Patricia tries to efficiently store and verify the entire world state. You can prove any piece of data exists in the tree with a compact "Merkle proof."
+
+### Layer 2 Scaling
+
+Ethereum's base layer (Layer 1) processes ~15-30 transactions per second. Layer 2 solutions process transactions off-chain while inheriting Ethereum's security:
+
+| Type | How It Works | Examples |
+|------|-------------|---------|
+| **Optimistic Rollups** | Assume transactions are valid; anyone can submit a "fraud proof" to challenge invalid transactions (7-day challenge period) | Optimism, Arbitrum, Base |
+| **ZK-Rollups** | Generate a cryptographic validity proof (ZKP) that mathematically guarantees all transactions are correct | zkSync, Scroll, Polygon zkEVM, StarkNet |
+| **Sidechains** | Independent blockchains with their own consensus, bridged to Ethereum | Polygon PoS |
+
+**The Rollup-Centric Roadmap**: Ethereum's official scaling strategy is to make Layer 1 a "settlement layer" optimized for rollups. Proto-danksharding (EIP-4844, "blobs") introduced cheaper data storage specifically for rollups — reducing L2 fees by 10-100x.
+
+**Sharding** (Danksharding) is the endgame: splitting Ethereum's data layer into multiple "shards" so rollups can store even more data cheaply.
+
+### Finality, Slashing & Validator Economics
+
+**Finality** means a transaction is irreversible — it can never be changed or removed:
+
+- On Ethereum PoS, **finality** occurs when 2/3 of validators (by staked ETH) attest to a block. This takes ~12-15 minutes (2 epochs).
+- **Weak subjectivity**: If you were offline for an extended period, you need a trusted checkpoint to rejoin — you can't fully verify from genesis like in Proof-of-Work.
+
+**Slashing** is the punishment for validators who break protocol rules:
+
+- **Double voting**: Signing two different blocks for the same slot → slashed (lose 1+ ETH)
+- **Surround voting**: Creating attestations that contradict finality → slashed
+- **Inactivity leak**: If too many validators go offline and finality stalls, inactive validators gradually lose stake until the remaining active validators reach 2/3
+
+The economics create a strong incentive: validators earn ~4-5% APY on their 32 ETH stake when honest, but risk losing their entire stake if they attack the network.
+
+### Node Types
+
+Not all participants run the same software:
+
+| Node Type | Function | Storage |
+|-----------|----------|---------|
+| **Full Node** | Validates all blocks and transactions, stores recent state | ~500 GB |
+| **Archive Node** | Full node + stores all historical state (every past balance, every past contract state) | ~12+ TB |
+| **Light Node** | Only downloads block headers, verifies on demand using Merkle proofs | Minimal |
+| **Validator Node** | Full node + participates in consensus by proposing and attesting to blocks | ~500 GB + 32 ETH stake |
+
+**Why run a node?** Running your own node means you don't trust anyone — you independently verify every transaction. This is the ultimate expression of "don't trust, verify."
+
+---
+
 ## Key Concepts
 
 | Concept | Definition |
-|---------|-----------|
+|---------|-----------:|
 | **Blockchain** | A distributed, immutable ledger maintained by consensus |
 | **Smart Contract** | Self-executing code deployed permanently on the blockchain |
 | **Proof-of-Stake** | Consensus mechanism where validators stake ETH as collateral |
@@ -100,6 +159,11 @@ As engineering students, you build systems. Understanding how to design for dece
 | **Resistance to Capture** | No small group can gain disproportionate control |
 | **EIP** | Ethereum Improvement Proposal — how protocol changes are proposed |
 | **Client Diversity** | Multiple independent software implementations of the protocol |
+| **Hash Function** | One-way function producing a fixed-size digest from any input |
+| **Digital Signature** | Cryptographic proof of private key ownership without revealing the key |
+| **Rollup** | L2 scaling solution that bundles transactions and posts proofs to L1 |
+| **Finality** | State where a transaction is cryptographically irreversible |
+| **Slashing** | Penalty for validators who violate protocol rules |
 
 ## Further Reading
 
@@ -109,6 +173,10 @@ As engineering students, you build systems. Understanding how to design for dece
 - [OFAC Sanctions and Ethereum](https://www.mevwatch.info/) — Tracking OFAC compliance in block production
 - [EIP Process](https://eips.ethereum.org/) — Browse all Ethereum Improvement Proposals
 - [Client Diversity Dashboard](https://clientdiversity.org/) — Track Ethereum client distribution
+- [Ethereum Scaling — ethereum.org](https://ethereum.org/en/developers/docs/scaling/) — Official L2 overview
+- [EIP-4844 (Proto-Danksharding)](https://eips.ethereum.org/EIPS/eip-4844) — Blob transactions for rollups
+- [Ethereum Proof-of-Stake](https://ethereum.org/en/developers/docs/consensus-mechanisms/pos/) — How PoS works
+- [Run Your Own Node](https://ethereum.org/en/run-a-node/) — Guide to running an Ethereum node
 
 ## Discussion Questions
 
@@ -116,3 +184,6 @@ As engineering students, you build systems. Understanding how to design for dece
 2. How is posting on Ethereum different from posting on X (Twitter) or Instagram?
 3. What are the downsides of censorship resistance? (Consider spam, harmful content)
 4. Can you think of a system in your daily life that would benefit from resistance to capture?
+5. Why is client diversity a security measure, not just a philosophical preference?
+6. If Ethereum can "rollback" a hack (as it did with the DAO), does it truly have censorship resistance?
+

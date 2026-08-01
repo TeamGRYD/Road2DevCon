@@ -137,16 +137,118 @@ Open-source contributions are visible, verifiable, and valued by employers world
 
 ---
 
+## 📖 Extended Learning
+
+:::info
+The sections below go deeper than the 25-minute presentation. They're designed for self-study so you can prepare for **Quiz 2 (Open Source)**, which draws from this entire page including the extended material.
+:::
+
+### DAOs & On-Chain Governance
+
+A **DAO (Decentralized Autonomous Organization)** is an organization governed by smart contracts and token holder votes instead of executives and boards.
+
+**How DAOs work:**
+
+1. Members hold **governance tokens** (often ERC-20 tokens)
+2. Anyone can create a **proposal** (e.g., "Allocate 100 ETH to fund this project")
+3. Token holders **vote** on proposals (1 token = 1 vote, or more complex schemes like quadratic voting)
+4. If the proposal passes the quorum and threshold, the smart contract **automatically executes** the action
+5. No CEO, no board — the code enforces the outcome
+
+**Notable DAOs:**
+
+| DAO | Purpose | Treasury |
+|-----|---------|----------|
+| **Uniswap DAO** | Governs the largest decentralized exchange | ~$3B |
+| **Aave DAO** | Governs a lending/borrowing protocol | ~$100M |
+| **MakerDAO** | Governs the DAI stablecoin | ~$5B |
+| **Gitcoin DAO** | Funds public goods in the Ethereum ecosystem | ~$50M |
+| **ENS DAO** | Governs the Ethereum Name Service | ~$1B |
+
+**Challenges**: Low voter turnout, whale dominance (large holders control outcomes), governance attacks via flash loans, and the tension between speed (centralized decision-making) and decentralization.
+
+**Governance frameworks**: [Governor](https://docs.openzeppelin.com/contracts/governance) by OpenZeppelin is the standard framework. [Snapshot](https://snapshot.org/) enables gasless off-chain voting. [Tally](https://www.tally.xyz/) provides on-chain governance dashboards.
+
+### Public Goods & Funding
+
+"**Public goods**" in the Ethereum context are open-source projects, infrastructure, and tools that benefit the entire ecosystem but struggle to monetize (like roads or parks in the physical world).
+
+**Funding mechanisms:**
+
+- **Gitcoin Grants**: Uses **quadratic funding** — a mathematical formula where the *number of contributors* matters more than the *amount*. A project with 1,000 donors giving $1 each receives more matching funds than a project with 1 donor giving $1,000. This democratizes funding.
+- **Retroactive Public Goods Funding (RetroPGF)**: Optimism's model of rewarding projects *after* they've proven their value. "It's easier to agree on what was useful than to predict what will be useful."
+- **Protocol Guild**: A collective of Ethereum core developers who receive a portion of protocol revenue as compensation for maintaining the public good of Ethereum itself.
+- **Ethereum Foundation Grants**: Direct grants from the EF for research, development, education, and community building.
+
+**The public goods problem**: Without explicit funding mechanisms, open-source developers are expected to work for free — which is unsustainable. These mechanisms aim to make "building for the commons" financially viable.
+
+### DeFi Composability — "Money Legos"
+
+**Composability** is the ability of smart contracts to interact with each other seamlessly, like LEGO bricks snapping together. This is possible because every contract on Ethereum shares the same state and execution environment.
+
+**Example flow**: You can take a flash loan from Aave → swap tokens on Uniswap → provide liquidity on Curve → earn yield — all in a single atomic transaction. If any step fails, the entire transaction reverts.
+
+**Why this matters:**
+
+- New protocols can build on top of existing ones without permission
+- Innovation compounds — each new "lego" creates exponentially more possible combinations
+- But it also creates **systemic risk**: if one foundational protocol fails (like a stablecoin depegging), everything built on top is affected
+
+**Key DeFi primitives:**
+
+| Primitive | What It Does | Examples |
+|-----------|-------------|---------|
+| **DEX (Decentralized Exchange)** | Swap tokens without intermediaries | Uniswap, SushiSwap, Curve |
+| **Lending/Borrowing** | Deposit collateral, borrow assets | Aave, Compound |
+| **Stablecoins** | Tokens pegged to $1 (or other assets) | DAI (crypto-backed), USDC (fiat-backed) |
+| **Yield Aggregator** | Auto-compound yield across protocols | Yearn Finance |
+| **Oracle** | Bring off-chain data (prices) on-chain | Chainlink, Pyth |
+
+### Gas & Transaction Economics
+
+Every operation on Ethereum costs **gas** — a unit measuring computational work. Understanding gas is fundamental to building and using Ethereum.
+
+**How gas works (post EIP-1559):**
+
+- **Base fee**: Set by the protocol, adjusts automatically based on network demand. This portion of the gas fee is **burned** (permanently destroyed), making ETH deflationary during high activity.
+- **Priority fee (tip)**: Paid directly to the validator as an incentive to include your transaction.
+- **Total fee** = `gas_used × (base_fee + priority_fee)`
+- **Gas limit**: Maximum gas you're willing to spend. If your transaction runs out of gas, it reverts but you still pay for the gas consumed.
+
+**Why EIP-1559 matters**: Before EIP-1559, gas pricing was a "blind auction" where you guessed how much to pay. Now the base fee makes gas predictable, and burning the base fee creates economic alignment — more usage = more ETH burned = ETH becomes scarcer.
+
+### Smart Contract Languages Beyond Solidity
+
+While Solidity dominates, alternative languages exist:
+
+| Language | Style | Key Feature |
+|----------|-------|-------------|
+| **Vyper** | Pythonic, minimalist | No inheritance, no operator overloading — designed to be simpler and harder to write bugs in |
+| **Fe** | Rust-inspired | Strong type system, currently in alpha |
+| **Huff** | Low-level assembly | Write near-raw EVM bytecode for gas optimization |
+| **Cairo** | StarkNet-specific | Used for writing STARK-provable programs |
+| **Yul** | Intermediate language | Solidity's inline assembly language for fine-grained control |
+
+**Vyper** is the most notable alternative. Its philosophy is the opposite of Solidity's: fewer features = fewer footguns. No function overloading, no modifiers, no inline assembly. The DeFi protocol Curve Finance is written almost entirely in Vyper.
+
+---
+
 ## Key Concepts
 
 | Concept | Definition |
-|---------|-----------|
+|---------|-----------:|
 | **Open Source Software** | Code that anyone can inspect, modify, and distribute |
 | **EIP (Ethereum Improvement Proposal)** | The process for proposing protocol changes |
 | **ERC (Ethereum Request for Comments)** | Application-level standards (tokens, NFTs, etc.) |
 | **Solidity** | The primary programming language for smart contracts |
 | **Smart Contract Verification** | Publishing source code on Etherscan to prove bytecode matches |
 | **Etherscan** | Block explorer for viewing transactions and contracts |
+| **DAO** | Organization governed by smart contracts and token holder votes |
+| **Quadratic Funding** | Funding formula where number of contributors matters more than amounts |
+| **Composability** | Smart contracts interacting seamlessly like LEGO bricks |
+| **Gas** | Unit measuring computational work on Ethereum |
+| **EIP-1559** | Fee reform: predictable base fee (burned) + priority tip |
+| **Vyper** | Pythonic smart contract language emphasizing simplicity and safety |
 
 ## Further Reading
 
@@ -160,6 +262,12 @@ Open-source contributions are visible, verifiable, and valued by employers world
 - [Foundry Book](https://book.getfoundry.sh/) — Solidity-native toolchain
 - [ERC-20 Token Standard](https://eips.ethereum.org/EIPS/eip-20) — The fungible token standard
 - [ERC-721 NFT Standard](https://eips.ethereum.org/EIPS/eip-721) — The non-fungible token standard
+- [Vyper Documentation](https://docs.vyperlang.org/) — Alternative smart contract language
+- [Gitcoin Grants](https://grants.gitcoin.co/) — Quadratic funding for public goods
+- [Optimism RetroPGF](https://app.optimism.io/retropgf) — Retroactive public goods funding
+- [OpenZeppelin Governor](https://docs.openzeppelin.com/contracts/governance) — DAO governance framework
+- [Snapshot](https://snapshot.org/) — Gasless off-chain governance voting
+- [DeFi Llama](https://defillama.com/) — Dashboard tracking all DeFi protocols
 
 ## Discussion Questions
 
@@ -167,3 +275,6 @@ Open-source contributions are visible, verifiable, and valued by employers world
 2. How does the EIP process compare to how changes happen at a traditional tech company?
 3. What's the difference between "open source" and "free software"?
 4. If you were to make your first open-source contribution, which project would you choose and why?
+5. Is quadratic funding more "democratic" than traditional venture capital? What are its weaknesses?
+6. If DAOs replace companies, who is accountable when something goes wrong?
+

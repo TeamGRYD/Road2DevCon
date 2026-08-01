@@ -6,6 +6,20 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.2.1] - 2026-08-01
+
+### Added
+
+#### Documentation — Extended Learning Sections
+- **`docs/docs/presentations/censorship-resistance.md`** — Cryptography basics, L2 scaling (rollups, sharding), finality/slashing, node types
+- **`docs/docs/presentations/open-source.md`** — DAOs & governance, public goods funding (Gitcoin, RetroPGF), DeFi composability, gas/EIP-1559, Vyper & alternative languages
+- **`docs/docs/presentations/privacy.md`** — MPC, stealth addresses, FHE, privacy coins (Monero/Zcash), DIDs/SBTs/SSI, GDPR/OFAC regulation, nullifiers, differential privacy
+- **`docs/docs/presentations/security.md`** — MEV, proxy patterns (UUPS/transparent/diamond), formal verification & fuzzing, more case studies (Wormhole/Parity/Cream), rug pulls, gas griefing, function selector collisions
+
+Each presentation doc now includes a **📖 Extended Learning** section clearly separated from the 25-minute presentation slides. These are designed for self-study so students can prepare for the quizzes, which draw from the entire page.
+
+---
+
 ## [0.2.0] - 2026-08-01
 
 ### ⚠️ BREAKING CHANGES
