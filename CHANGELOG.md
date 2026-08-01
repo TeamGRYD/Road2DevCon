@@ -6,6 +6,31 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.2.2] - 2026-08-02
+
+### Changed
+
+#### Homepage Hero (`src/main.js`, `style.css`)
+- Removed `🇮🇳 DevCon 8 · Mumbai · 3-6 November 2026` badge from hero section due to repeating info
+- Centered Road to DevCon logo horizontally (`display: block` + `margin: 0 auto`)
+- Added `ft.` connector text between "Workshops Edition" subtitle and CROPS letters
+
+#### Quiz Page (`src/main.js`)
+- Removed redundant meta/rules from all 4 quiz cards (10 Random Questions, Max 2,000 pts, ⏱️ 30s/question, 🚫 One attempt)
+- Updated quiz subtitle: *"Test your understanding! 10 random questions, 30 seconds each, only 1 attempt per quiz. 4 of these quizzes are all it takes to determine your ranking in the on-chain leaderboard!"*
+
+#### Branding & Favicon (`index.html`, `style.css`, `public/`)
+- **New favicon**: Generated from `raw_favicon.svg` — created `favicon.svg` (5 KB) and `favicon.ico` (4 KB) with 16/32/64px sizes; updated both main site and Docusaurus docs
+- **Header & footer logo**: Replaced `devcon8-logo.png` with `road2devcon-primary.png` (colorful circular logo); removed `brightness(0) invert(1)` CSS filter, added `border-radius: 50%`
+- **Website preview image**: Changed OG/Twitter preview from `devcon-hero-3.jpg` to `devcon-hero-2.jpg`
+- Added ICO favicon fallback `<link>` for browser compatibility
+- Cleaned up `raw_favicon.svg` (3 MB) from repository
+
+#### Navigation (`index.html`)
+- Added **Wiki ↗** external link to header nav bar — opens `wiki.road2devcon.quest` in a new tab
+
+---
+
 ## [0.2.1] - 2026-08-01
 
 ### Added

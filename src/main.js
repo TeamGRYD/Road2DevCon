@@ -82,11 +82,12 @@ function renderHomePage(app) {
       <div class="hero-glow hero-glow-2"></div>
       <div class="hero-content">
         <img src="/images/roadtodevconindia-logo-multicoloured.png" alt="Road to DevCon India" class="hero-devcon-logo" />
-        <div class="hero-badge">🇮🇳 DevCon 8 · Mumbai · 3-6 November 2026</div>
+
         <h1 class="hero-title">
           Road to <span class="gradient-text">DevCon 8</span>
         </h1>
         <p class="hero-subtitle">Workshops Edition</p>
+        <p class="hero-ft">ft.</p>
         <div class="crops-letters">
           <span class="crop-letter">C</span>
           <span class="crop-letter">R</span>
@@ -194,7 +195,7 @@ function renderQuizzesPage(app) {
     <div class="page-container">
       <div class="page-header">
         <h1 class="page-title">🧠 Knowledge Quizzes</h1>
-        <p class="page-subtitle">Test your understanding! 10 random questions per attempt, 30 seconds each. Scores stored on-chain.</p>
+        <p class="page-subtitle">Test your understanding! 10 random questions, 30 seconds each, only 1 attempt per quiz. 4 of these quizzes are all it takes to determine your ranking in the on-chain leaderboard!</p>
       </div>
       <div class="quiz-grid" id="quiz-grid"></div>
     </div>
@@ -208,14 +209,7 @@ function renderQuizzesPage(app) {
       <h3>Quiz ${q.quizId + 1}</h3>
       <p class="quiz-card-title">${q.title}</p>
       <p class="quiz-card-desc">${q.description}</p>
-      <div class="quiz-card-meta">
-        <span>10 Random Questions</span>
-        <span>Max 2,000 pts</span>
-      </div>
-      <div class="quiz-card-rules">
-        <span>⏱️ 30s/question</span>
-        <span>🚫 One attempt</span>
-      </div>
+
       <button class="btn btn-primary quiz-take-btn" data-quiz-id="${q.quizId}">
         Take Quiz →
       </button>
