@@ -81,7 +81,7 @@ function renderHomePage(app) {
       <div class="hero-glow hero-glow-1"></div>
       <div class="hero-glow hero-glow-2"></div>
       <div class="hero-content">
-        <img src="/images/roadtodevconindia-logo-multicoloured.png" alt="Road to DevCon India" class="hero-devcon-logo" />
+        <img src="/images/road_to_devcon_hero.png" alt="Road to DevCon" class="hero-devcon-logo" />
 
         <h1 class="hero-title">
           Road to <span class="gradient-text">DevCon 8</span>
@@ -113,6 +113,64 @@ function renderHomePage(app) {
       </div>
     </section>
   `;
+
+  initHeroParallax(app.querySelector('.hero-section'));
+}
+
+// =================== HERO PARALLAX (subtle) ===================
+
+function initHeroParallax(section) {
+  if (!section) return;
+  // Respect reduced motion and skip on touch devices
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (window.matchMedia('(pointer: coarse)').matches) return;
+
+  const bgImage = section.querySelector('.hero-bg-image');
+  const bgGrid = section.querySelector('.hero-bg-grid');
+  if (!bgImage && !bgGrid) return;
+
+  // Normalized mouse position, -1..1, lerped for smoothness
+  const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+  let raf = 0;
+
+  function onMove(e) {
+    const rect = section.getBoundingClientRect();
+    mouse.tx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.ty = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+  }
+
+  function onLeave() {
+    mouse.tx = 0;
+    mouse.ty = 0;
+  }
+
+  section.addEventListener('mousemove', onMove);
+  section.addEventListener('mouseleave', onLeave);
+
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  function tick() {
+    if (!section.isConnected) {
+      // Hero was removed via routing — stop the loop, listeners die with the DOM node
+      cancelAnimationFrame(raf);
+      return;
+    }
+
+    mouse.x = lerp(mouse.x, mouse.tx, 0.06);
+    mouse.y = lerp(mouse.y, mouse.ty, 0.06);
+
+    // Gentle depth: background drifts a few px opposite the cursor, grid even less
+    if (bgImage) {
+      bgImage.style.transform = `translate3d(${(-mouse.x * 14).toFixed(2)}px, ${(-mouse.y * 14).toFixed(2)}px, 0)`;
+    }
+    if (bgGrid) {
+      bgGrid.style.transform = `translate3d(${(-mouse.x * 8).toFixed(2)}px, ${(-mouse.y * 8).toFixed(2)}px, 0)`;
+    }
+
+    raf = requestAnimationFrame(tick);
+  }
+
+  raf = requestAnimationFrame(tick);
 }
 
 // =================== PAGE: PRESENTATIONS ===================
