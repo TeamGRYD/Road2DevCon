@@ -102,6 +102,7 @@ npx vercel dev
 
 ```env
 VITE_CONTRACT_ADDRESS=<deployed-QuizScores-contract-address>
+VITE_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
 ```
 
 **Server-side** (in Vercel Dashboard → Settings → Environment Variables):
@@ -111,7 +112,7 @@ VITE_CONTRACT_ADDRESS=<deployed-QuizScores-contract-address>
 | `ADMIN_PRIVATE_KEY` | Admin wallet private key (signs quiz scores) |
 | `ADMIN_ADDRESS` | Admin wallet address |
 | `JWT_SECRET` | Random 32+ character string for session tokens |
-| `RPC_URL` | Sepolia RPC URL (default: `https://rpc.sepolia.org`) |
+| `RPC_URL` | Sepolia RPC URL (default: `https://ethereum-sepolia-rpc.publicnode.com`) |
 
 > **⚠️ Security Note**: Server-side variables must NOT have the `VITE_` prefix. Never store private keys in `.env` files that are committed to version control.
 

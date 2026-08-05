@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { verifyToken } from '../lib/jwt.js';
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
-const RPC_URL = process.env.RPC_URL || 'https://rpc.sepolia.org';
+const RPC_URL = process.env.RPC_URL || 'https://ethereum-sepolia-rpc.publicnode.com';
 const CONTRACT_ADDRESS = process.env.VITE_CONTRACT_ADDRESS || '';
 
 // Minimal ABI for reading nonce

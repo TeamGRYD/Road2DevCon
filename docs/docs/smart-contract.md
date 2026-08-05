@@ -184,6 +184,7 @@ After deployment, set these environment variables:
 **Client-side** (in `.env` file):
 ```env
 VITE_CONTRACT_ADDRESS=0xYourDeployedContractAddress
+VITE_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
 ```
 
 **Server-side** (in Vercel Dashboard → Settings → Environment Variables):
@@ -191,7 +192,7 @@ VITE_CONTRACT_ADDRESS=0xYourDeployedContractAddress
 ADMIN_PRIVATE_KEY=0xYourAdminPrivateKey
 ADMIN_ADDRESS=0xYourAdminAddress
 JWT_SECRET=any-random-string-32-chars-min
-RPC_URL=https://rpc.sepolia.org
+RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
 ```
 
 :::warning

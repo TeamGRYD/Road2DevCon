@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { serverQuestions } from '../lib/questions.js';
 import { createToken } from '../lib/jwt.js';
 
-const RPC_URL = process.env.RPC_URL || 'https://rpc.sepolia.org';
+const RPC_URL = process.env.RPC_URL || 'https://ethereum-sepolia-rpc.publicnode.com';
 const CONTRACT_ADDRESS = process.env.VITE_CONTRACT_ADDRESS || '';
 
 // Minimal ABI for read-only checks

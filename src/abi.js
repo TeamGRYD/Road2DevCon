@@ -123,6 +123,9 @@ export const QUIZ_SCORES_ABI = [
 // Contract address - injected at build time from environment variable
 export const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || '';
 
+// Sepolia RPC URL - configurable via env, with reliable fallback
+export const SEPOLIA_RPC_URL = import.meta.env.VITE_RPC_URL || 'https://ethereum-sepolia-rpc.publicnode.com';
+
 // Sepolia chain ID
 export const SEPOLIA_CHAIN_ID = '0xaa36a7'; // 11155111 in hex
 export const SEPOLIA_CHAIN_ID_DEC = 11155111;
@@ -132,6 +135,6 @@ export const SEPOLIA_NETWORK = {
   chainId: '0xaa36a7',
   chainName: 'Sepolia Testnet',
   nativeCurrency: { name: 'SepoliaETH', symbol: 'ETH', decimals: 18 },
-  rpcUrls: ['https://rpc.sepolia.org'],
+  rpcUrls: [SEPOLIA_RPC_URL],
   blockExplorerUrls: ['https://sepolia.etherscan.io']
 };
