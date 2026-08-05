@@ -46,6 +46,7 @@ Edit `.env` with your client-side values:
 
 ```env
 VITE_CONTRACT_ADDRESS=<your-deployed-QuizScores-contract-address>
+VITE_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
 ```
 
 :::warning Server-Side Secrets
@@ -56,7 +57,7 @@ The following variables must be set in **Vercel Dashboard → Settings → Envir
 | `ADMIN_PRIVATE_KEY` | Admin wallet private key (signs quiz scores) |
 | `ADMIN_ADDRESS` | Admin wallet address (for verification) |
 | `JWT_SECRET` | Random 32+ character string (for quiz sessions) |
-| `RPC_URL` | Sepolia RPC URL (default: `https://rpc.sepolia.org`) |
+| `RPC_URL` | Sepolia RPC URL (default: `https://ethereum-sepolia-rpc.publicnode.com`) |
 
 These must **not** have the `VITE_` prefix to stay server-side.
 :::

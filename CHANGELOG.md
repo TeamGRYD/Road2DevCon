@@ -6,6 +6,27 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.2.3] - 2026-08-05
+
+### Fixed
+
+#### Leaderboard RPC Reliability (`src/leaderboard.js`, `src/abi.js`)
+- **Root cause**: Leaderboard failed with "Failed to fetch" because `https://rpc.sepolia.org` (hardcoded) was returning HTTP 404
+- Replaced hardcoded RPC URL with configurable `SEPOLIA_RPC_URL` exported from `abi.js`
+- Added `VITE_RPC_URL` env var (client-side) with reliable default: `https://ethereum-sepolia-rpc.publicnode.com`
+- Updated `SEPOLIA_NETWORK.rpcUrls` to use the same configurable URL
+
+#### Server-Side API RPC Fallback (`api/quiz/start.js`, `api/quiz/complete.js`)
+- Updated fallback RPC URL from unreliable `rpc.sepolia.org` to `ethereum-sepolia-rpc.publicnode.com`
+
+### Changed
+
+#### Documentation & Config
+- Updated `.env`, `.env.example`, `README.md`, `docs/getting-started.md`, `docs/smart-contract.md` to reference `VITE_RPC_URL` and the new default RPC endpoint
+- Removed all references to the deprecated `rpc.sepolia.org`
+
+---
+
 ## [0.2.2] - 2026-08-02
 
 ### Changed

@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { QUIZ_SCORES_ABI, CONTRACT_ADDRESS, SEPOLIA_CHAIN_ID_DEC } from './abi.js';
+import { QUIZ_SCORES_ABI, CONTRACT_ADDRESS, SEPOLIA_CHAIN_ID_DEC, SEPOLIA_RPC_URL } from './abi.js';
 import { quizQuestions } from './data/quizQuestions.js';
 
 // =================== STATE ===================
@@ -31,7 +31,7 @@ export async function loadLeaderboard(container) {
   `;
 
   try {
-    const provider = new ethers.JsonRpcProvider('https://rpc.sepolia.org');
+    const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL);
     const contract = new ethers.Contract(CONTRACT_ADDRESS, QUIZ_SCORES_ABI, provider);
 
     const participantCount = await contract.getParticipantCount();
