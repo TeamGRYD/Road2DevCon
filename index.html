@@ -1,81 +1,128 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Road to DevCon 8: Workshops Edition</title>
-  <meta name="description" content="Road to DevCon 8 Workshops Edition: Learn about Ethereum's core principles through interactive presentations, quizzes, and hands-on workshops. Mumbai, November 2026." />
-  <meta property="og:title" content="Road to DevCon 8: Workshops Edition" />
-  <meta property="og:description" content="Learn Ethereum's core principles through interactive presentations, quizzes, and hands-on workshops. Mumbai, 3-6 November 2026." />
-  <meta property="og:image" content="/images/devcon-hero-2.jpg" />
-  <meta property="og:type" content="website" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Road to DevCon 8: Workshops Edition" />
-  <meta name="twitter:image" content="/images/devcon-hero-2.jpg" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/style.css" />
-</head>
-<body>
-  <!-- Notification Container -->
-  <div id="notification-container" class="notification-container"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Road to DevCon 8: Workshops Edition</title>
+    <meta
+      name="description"
+      content="Road to DevCon 8 Workshops Edition: Learn about Ethereum's core principles through interactive presentations, quizzes, and hands-on workshops. Mumbai, November 2026."
+    />
+    <meta property="og:title" content="Road to DevCon 8: Workshops Edition" />
+    <meta
+      property="og:description"
+      content="Learn Ethereum's core principles through interactive presentations, quizzes, and hands-on workshops. Mumbai, 3-6 November 2026."
+    />
+    <meta property="og:image" content="/images/devcon-hero-4.jpg" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Road to DevCon 8: Workshops Edition" />
+    <meta name="twitter:image" content="/images/devcon-hero-4.jpg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <!-- Notification Container -->
+    <div id="notification-container" class="notification-container"></div>
 
-  <!-- Navigation -->
-  <nav class="main-nav" id="main-nav">
-    <div class="nav-inner">
-      <a href="#/home" class="nav-brand">
-        <img src="/images/road2devcon-primary.png" alt="Road to DevCon" class="nav-logo-img" />
-        <span class="nav-title">Road to DevCon 8</span>
-      </a>
-      <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
-        <span></span><span></span><span></span>
-      </button>
-      <div class="nav-links">
-        <a href="#/presentations" class="nav-link">Presentations</a>
-        <a href="#/quizzes" class="nav-link">Quizzes</a>
-        <a href="#/leaderboard" class="nav-link">Leaderboard</a>
-        <a href="#/quests" class="nav-link">Quests</a>
-        <a href="https://wiki.road2devcon.quest/" class="nav-link" target="_blank" rel="noopener">Wiki ↗</a>
-      </div>
-      <div class="nav-wallet">
-        <span class="wallet-status-dot" id="wallet-status-dot"></span>
-        <span class="wallet-address" id="wallet-address"></span>
-        <button class="btn btn-wallet" id="wallet-connect-btn">Connect Wallet</button>
-      </div>
-    </div>
-  </nav>
-
-  <!-- App Container (pages render here) -->
-  <main id="app"></main>
-
-  <!-- Quiz Modal -->
-  <div class="modal-overlay" id="quiz-modal">
-    <div class="modal-container" id="quiz-modal-content"></div>
-  </div>
-
-  <!-- Footer -->
-  <footer class="site-footer">
-    <div class="container">
-      <div class="footer-content">
-        <div class="footer-brand">
-          <img src="/images/road2devcon-primary.png" alt="Road to DevCon" class="footer-logo-img" />
-          <span>Road to DevCon 8: Workshops Edition</span>
+    <!-- Navigation -->
+    <nav class="main-nav" id="main-nav">
+      <div class="nav-inner">
+        <a href="#/home" class="nav-brand">
+          <img src="/devcon_logo.svg" alt="DevCon 8" class="nav-logo-img" />
+        </a>
+        <button
+          class="mobile-nav-toggle"
+          id="mobile-nav-toggle"
+          aria-label="Toggle navigation"
+        >
+          <span></span><span></span><span></span>
+        </button>
+        <div class="nav-links">
+          <a href="#/presentations" class="nav-link">Presentations</a>
+          <a href="#/quizzes" class="nav-link">Quizzes</a>
+          <a href="#/leaderboard" class="nav-link">Leaderboard</a>
+          <a href="#/quests" class="nav-link">Quests</a>
+          <a
+            href="https://wiki.road2devcon.quest/"
+            class="nav-link"
+            target="_blank"
+            rel="noopener"
+            >Wiki ↗</a
+          >
         </div>
-        <div class="footer-links">
-          <a href="https://devcon.org" target="_blank" rel="noopener">DevCon.org</a>
-          <a href="https://ethereum.org" target="_blank" rel="noopener">Ethereum.org</a>
-          <a href="https://gryd.wtf" target="_blank" rel="noopener">GRYD</a>
-          <a href="https://github.com/TeamGRYD/Road2DevCon" target="_blank" rel="noopener">GitHub</a>
-          <a href="https://wiki.road2devcon.quest" target="_blank" rel="noopener">Wiki</a>
+        <div class="nav-wallet">
+          <span class="wallet-status-dot" id="wallet-status-dot"></span>
+          <span class="wallet-address" id="wallet-address"></span>
+          <button class="btn btn-wallet" id="wallet-connect-btn">
+            Connect Wallet
+          </button>
         </div>
-        <p class="footer-copy">Built for DevCon 8 Mumbai 🇮🇳 with 💗 by <a href="https://x.com/TeamGRYD" target="_blank" rel="noopener" class="footer-gryd-link">GRYD</a></p>
       </div>
-    </div>
-  </footer>
+    </nav>
 
-  <script type="module" src="/src/main.js"></script>
-</body>
+    <!-- App Container (pages render here) -->
+    <main id="app"></main>
+
+    <!-- Quiz Modal -->
+    <div class="modal-overlay" id="quiz-modal">
+      <div class="modal-container" id="quiz-modal-content"></div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-content">
+          <div class="footer-brand">
+            <img
+              src="/images/road2devcon-primary.png"
+              alt="Road to DevCon"
+              class="footer-logo-img"
+            />
+            <span>Road to DevCon 8: Workshops Edition</span>
+          </div>
+          <div class="footer-links">
+            <a href="https://devcon.org" target="_blank" rel="noopener"
+              >DevCon.org</a
+            >
+            <a href="https://ethereum.org" target="_blank" rel="noopener"
+              >Ethereum.org</a
+            >
+            <a href="https://gryd.wtf" target="_blank" rel="noopener">GRYD</a>
+            <a
+              href="https://github.com/TeamGRYD/Road2DevCon"
+              target="_blank"
+              rel="noopener"
+              >GitHub</a
+            >
+            <a
+              href="https://wiki.road2devcon.quest"
+              target="_blank"
+              rel="noopener"
+              >Wiki</a
+            >
+          </div>
+          <p class="footer-copy">
+            Built for DevCon 8 Mumbai 🇮🇳 with 💗 by
+            <a
+              href="https://x.com/TeamGRYD"
+              target="_blank"
+              rel="noopener"
+              class="footer-gryd-link"
+              >GRYD</a
+            >
+          </p>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
 </html>
