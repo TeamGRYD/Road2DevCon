@@ -6,6 +6,20 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.2.4] - 2026-08-08
+
+### Added
+
+#### Multi-Event Leaderboard (`src/config/events.js`, `src/leaderboard.js`, `style.css`)
+- **New config file**: `src/config/events.js` — defines events with name, ID, and contract address; no env var changes needed for new events
+- **Event selector dropdown**: Leaderboard page now shows a dropdown to switch between events, each loading its own on-chain data from a separate contract
+- First event entry: *"Road to DevCon 8 — Workshop Edition ft. ATLAS SkillTech University"* (`0xb5456aDfa33BD3c94A6E021541d73Abc26A19138`)
+- Leaderboard no longer reads `CONTRACT_ADDRESS` from env — it reads per-event contract addresses from config
+- Styled event dropdown with glass aesthetic matching existing UI
+- **Luma link button**: Each event shows a "Luma ↗" button next to the dropdown, linking to `https://luma.com/{id}` (event ID doubles as the Luma URL slug)
+
+---
+
 ## [0.2.3] - 2026-08-05
 
 ### Fixed

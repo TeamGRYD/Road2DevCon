@@ -84,7 +84,9 @@ Each student receives a **different set of 10 questions** from a pool of 100+. O
 
 ## Leaderboard
 
-The leaderboard reads directly from the [QuizScores smart contract](/smart-contract) on Sepolia. It displays:
+The leaderboard supports **multiple events** — each event (e.g., a university workshop) has its own deployed [QuizScores contract](/smart-contract) on Sepolia. Users can switch between events using a dropdown on the leaderboard page. A **Luma ↗** button next to the dropdown links to the event's Luma page.
+
+For each event, the leaderboard displays:
 
 - Participant name and X username
 - Individual quiz scores (Q1–Q4)
@@ -92,3 +94,9 @@ The leaderboard reads directly from the [QuizScores smart contract](/smart-contr
 - Podium for top 3 participants
 
 The leaderboard updates automatically after each score submission.
+
+### Adding a New Event
+
+1. Deploy a fresh `QuizScores.sol` on Sepolia via Remix
+2. Add a new entry to `src/config/events.js` with the event name, Luma URL ID, and contract address
+3. Commit and deploy — the leaderboard dropdown and Luma link update automatically

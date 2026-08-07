@@ -50,7 +50,7 @@ Two hands-on, guided tutorials where participants deploy real smart contracts:
 2. **Private Voting** — A commit-reveal voting contract with security best practices
 
 ### 🏆 On-Chain Leaderboard
-Live leaderboard powered by the `QuizScores.sol` smart contract. Reads participant scores directly from the blockchain.
+Multi-event leaderboard powered by `QuizScores.sol` smart contracts on Sepolia. Each event (e.g., university workshop) gets its own contract and leaderboard, switchable via a dropdown. Each event links to its Luma page. Events are configured in `src/config/events.js` — no env var changes needed.
 
 ### 🔗 Wallet Integration
 MetaMask wallet connection with on-chain registration (name + X username permanently linked to wallet) and quiz score submission on Sepolia testnet.
@@ -146,9 +146,11 @@ Road2DevCon/
 │   ├── router.js              # Hash-based SPA router
 │   ├── slides.js              # Presentation slide engine
 │   ├── quiz.js                # Quiz engine (server-backed, 30s timer)
-│   ├── leaderboard.js         # On-chain leaderboard reader
+│   ├── leaderboard.js         # Multi-event on-chain leaderboard
 │   ├── wallet.js              # MetaMask wallet + registration
 │   ├── abi.js                 # QuizScores contract ABI
+│   ├── config/
+│   │   └── events.js          # Event definitions (name + contract address)
 │   └── data/
 │       ├── presentations.js   # 5 presentation content sets
 │       ├── quizQuestions.js   # Quiz metadata (NO correct answers)

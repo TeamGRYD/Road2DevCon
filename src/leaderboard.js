@@ -1,10 +1,12 @@
 import { ethers } from 'ethers';
-import { QUIZ_SCORES_ABI, CONTRACT_ADDRESS, SEPOLIA_CHAIN_ID_DEC, SEPOLIA_RPC_URL } from './abi.js';
+import { QUIZ_SCORES_ABI, SEPOLIA_RPC_URL } from './abi.js';
 import { quizQuestions } from './data/quizQuestions.js';
+import { EVENTS, DEFAULT_EVENT_ID } from './config/events.js';
 
 // =================== STATE ===================
 let leaderboardData = [];
 let activeTab = 'all';
+let activeEventId = DEFAULT_EVENT_ID;
 
 // =================== PUBLIC API ===================
 
@@ -12,33 +14,85 @@ export async function loadLeaderboard(container) {
   if (!container) container = document.getElementById('leaderboard-content');
   if (!container) return;
 
-  if (!CONTRACT_ADDRESS) {
+  if (EVENTS.length === 0) {
     container.innerHTML = `
       <div class="leaderboard-empty">
         <span class="empty-icon">⚙️</span>
-        <p>Contract not configured yet.</p>
-        <p class="empty-sub">Set <code>VITE_CONTRACT_ADDRESS</code> in your environment variables.</p>
+        <p>No events configured yet.</p>
+        <p class="empty-sub">Add events to <code>src/config/events.js</code> to get started.</p>
       </div>
     `;
     return;
   }
 
-  container.innerHTML = `
-    <div class="leaderboard-loading">
-      <div class="spinner-lg"></div>
-      <p>Loading leaderboard from Sepolia...</p>
-    </div>
-  `;
+  const event = EVENTS.find(e => e.id === activeEventId) || EVENTS[0];
+  activeEventId = event.id;
+
+  // Render the event selector + loading state
+  const tableArea = container.querySelector('#leaderboard-table-area');
+  if (tableArea) {
+    // If event selector already exists, just refresh the table area
+    tableArea.innerHTML = `
+      <div class="leaderboard-loading">
+        <div class="spinner-lg"></div>
+        <p>Loading leaderboard from Sepolia...</p>
+      </div>
+    `;
+  } else {
+    // First render — build the full layout with event selector
+    container.innerHTML = `
+      <div class="event-selector" id="event-selector">
+        <label for="event-dropdown" class="event-selector-label">📍 Event</label>
+        <select id="event-dropdown" class="event-dropdown">
+          ${EVENTS.map(e => `
+            <option value="${e.id}" ${e.id === activeEventId ? 'selected' : ''}>
+              ${escapeHtml(e.name)}
+            </option>
+          `).join('')}
+        </select>
+        ${event.id ? `
+          <a id="event-luma-link" class="event-luma-link" href="https://luma.com/${event.id}" target="_blank" rel="noopener" title="View on Luma">
+            Luma ↗
+          </a>
+        ` : ''}
+      </div>
+      <div id="leaderboard-table-area">
+        <div class="leaderboard-loading">
+          <div class="spinner-lg"></div>
+          <p>Loading leaderboard from Sepolia...</p>
+        </div>
+      </div>
+    `;
+
+    // Attach event dropdown listener
+    container.querySelector('#event-dropdown').addEventListener('change', (e) => {
+      activeEventId = e.target.value;
+      activeTab = 'all';
+      // Update Luma link
+      const lumaLink = container.querySelector('#event-luma-link');
+      if (lumaLink) {
+        if (activeEventId) {
+          lumaLink.href = `https://luma.com/${activeEventId}`;
+          lumaLink.style.display = '';
+        } else {
+          lumaLink.style.display = 'none';
+        }
+      }
+      loadLeaderboard(container);
+    });
+  }
+
+  const area = container.querySelector('#leaderboard-table-area');
 
   try {
     const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL);
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, QUIZ_SCORES_ABI, provider);
+    const contract = new ethers.Contract(event.contract, QUIZ_SCORES_ABI, provider);
 
     const participantCount = await contract.getParticipantCount();
     const count = Number(participantCount);
 
     if (count === 0) {
-      container.innerHTML = `
+      area.innerHTML = `
         <div class="leaderboard-empty">
           <span class="empty-icon">🏆</span>
           <p>No scores submitted yet!</p>
@@ -66,10 +120,10 @@ export async function loadLeaderboard(container) {
     }
 
     leaderboardData.sort((a, b) => b.totalScore - a.totalScore);
-    renderLeaderboard(container);
+    renderLeaderboard(area, event.contract);
   } catch (err) {
     console.error('Failed to load leaderboard:', err);
-    container.innerHTML = `
+    area.innerHTML = `
       <div class="leaderboard-empty">
         <span class="empty-icon">⚠️</span>
         <p>Failed to load leaderboard.</p>
@@ -84,12 +138,12 @@ export async function loadLeaderboard(container) {
 
 // =================== RENDERING ===================
 
-function renderLeaderboard(container) {
-  if (!container) return;
+function renderLeaderboard(area, contractAddress) {
+  if (!area) return;
 
   const quizTitles = quizQuestions.map(q => q.title);
 
-  container.innerHTML = `
+  area.innerHTML = `
     <div class="leaderboard-tabs" id="leaderboard-tabs">
       <button class="lb-tab ${activeTab === 'all' ? 'active' : ''}" data-tab="all">
         🏆 Overall
@@ -104,14 +158,14 @@ function renderLeaderboard(container) {
       ${renderTable(activeTab)}
     </div>
     <div class="leaderboard-footer">
-      <p>📊 ${leaderboardData.length} participant${leaderboardData.length !== 1 ? 's' : ''} · Scores stored on <a href="https://sepolia.etherscan.io/address/${CONTRACT_ADDRESS}" target="_blank" rel="noopener">Sepolia ↗</a></p>
+      <p>📊 ${leaderboardData.length} participant${leaderboardData.length !== 1 ? 's' : ''} · Scores stored on <a href="https://sepolia.etherscan.io/address/${contractAddress}" target="_blank" rel="noopener">Sepolia ↗</a></p>
     </div>
   `;
 
-  container.querySelectorAll('.lb-tab').forEach(tab => {
+  area.querySelectorAll('.lb-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       activeTab = tab.dataset.tab;
-      container.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
+      area.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById('leaderboard-table-wrapper').innerHTML = renderTable(activeTab);
     });

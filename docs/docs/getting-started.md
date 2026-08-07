@@ -106,9 +106,11 @@ Road2DevCon/
 │   ├── router.js           # Hash-based SPA router
 │   ├── slides.js           # Presentation slide engine
 │   ├── quiz.js             # Quiz engine (server-backed, 30s timer)
-│   ├── leaderboard.js      # On-chain leaderboard reader
+│   ├── leaderboard.js      # Multi-event on-chain leaderboard
 │   ├── wallet.js           # MetaMask wallet + on-chain registration
 │   ├── abi.js              # QuizScores contract ABI
+│   ├── config/
+│   │   └── events.js       # Event definitions (name + contract address)
 │   └── data/
 │       ├── presentations.js # All 5 presentation content
 │       ├── quizQuestions.js  # Quiz metadata (NO correct answers)
