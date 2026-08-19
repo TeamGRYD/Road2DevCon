@@ -21,6 +21,11 @@ export const EVENTS = [
     name: 'Road to DevCon 8 — Workshop Edition ft. ATLAS SkillTech University',
     contract: '0xb5456aDfa33BD3c94A6E021541d73Abc26A19138',
   },
+  {
+    id: 'x11ckwi5', //extracted from https://luma.com/vmatm00s
+    name: 'Road to DevCon 8 — Workshop Edition ft. DBIT Mumbai',
+    contract: '0xb54c3d5fea76dae38e615cc1ecf7024c7afc1b2d',
+  },
 
   // ──────────────────────────────────────────────────────
   // Example entries (uncomment and fill in after deploying)
