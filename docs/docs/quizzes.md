@@ -95,8 +95,18 @@ For each event, the leaderboard displays:
 
 The leaderboard updates automatically after each score submission.
 
+### Shareable Event URLs
+
+Each event's leaderboard has a deep-linkable URL:
+
+```
+https://www.road2devcon.quest/#/leaderboard/{eventId}
+```
+
+For example: `#/leaderboard/vmatm00s` links directly to the ATLAS SkillTech leaderboard. Sharing this URL will open the leaderboard pre-selected to that event.
+
 ### Adding a New Event
 
 1. Deploy a fresh `QuizScores.sol` on Sepolia via Remix
-2. Add a new entry to `src/config/events.js` with the event name, Luma URL ID, and contract address
+2. **Append** a new entry to the end of `src/config/events.js` with the event name, Luma URL ID, and contract address (the last entry is automatically the default)
 3. Commit and deploy — the leaderboard dropdown and Luma link update automatically

@@ -6,6 +6,25 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.2.5] - 2026-08-20
+
+### Added
+
+#### Deep-Linkable Leaderboard URLs (`src/router.js`, `src/main.js`, `src/leaderboard.js`)
+- Leaderboard URLs now support event suffixes: `#/leaderboard/{eventId}` (e.g., `#/leaderboard/vmatm00s`)
+- Router supports parameterized routes via prefix matching with `params.suffix`
+- Dropdown changes update the URL hash via `history.replaceState` for shareable links
+- Invalid or unknown event IDs gracefully fall back to the default event
+
+### Changed
+
+#### Event Ordering (`src/config/events.js`, `src/leaderboard.js`)
+- Config maintains **chronological order** (oldest first, newest appended at bottom)
+- Default event is now the **last** in the array (most recently added)
+- Dropdown renders events in **reverse order** (newest on top)
+
+---
+
 ## [0.2.4] - 2026-08-08
 
 ### Added

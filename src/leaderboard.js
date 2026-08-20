@@ -8,6 +8,13 @@ let leaderboardData = [];
 let activeTab = 'all';
 let activeEventId = DEFAULT_EVENT_ID;
 
+export function setActiveEventId(eventId) {
+  if (eventId && EVENTS.find(e => e.id === eventId)) {
+    activeEventId = eventId;
+    activeTab = 'all';
+  }
+}
+
 // =================== PUBLIC API ===================
 
 export async function loadLeaderboard(container) {
@@ -44,7 +51,7 @@ export async function loadLeaderboard(container) {
       <div class="event-selector" id="event-selector">
         <label for="event-dropdown" class="event-selector-label">📍 Event</label>
         <select id="event-dropdown" class="event-dropdown">
-          ${EVENTS.map(e => `
+          ${[...EVENTS].reverse().map(e => `
             <option value="${e.id}" ${e.id === activeEventId ? 'selected' : ''}>
               ${escapeHtml(e.name)}
             </option>
@@ -68,6 +75,8 @@ export async function loadLeaderboard(container) {
     container.querySelector('#event-dropdown').addEventListener('change', (e) => {
       activeEventId = e.target.value;
       activeTab = 'all';
+      // Update URL hash for deep-linking
+      history.replaceState(null, '', `#/leaderboard/${activeEventId}`);
       // Update Luma link
       const lumaLink = container.querySelector('#event-luma-link');
       if (lumaLink) {

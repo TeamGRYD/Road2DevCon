@@ -3,7 +3,7 @@ import { quizQuestions } from './data/quizQuestions.js';
 import { workshopQuests } from './data/workshopQuests.js';
 import { connectWallet, initWalletListeners, isConnected, isRegistered, getAddress, shortenAddress } from './wallet.js';
 import { startQuiz } from './quiz.js';
-import { loadLeaderboard, initLeaderboard } from './leaderboard.js';
+import { loadLeaderboard, initLeaderboard, setActiveEventId } from './leaderboard.js';
 import { openSlidePresenter } from './slides.js';
 import { registerRoute, initRouter, navigateTo } from './router.js';
 
@@ -281,7 +281,12 @@ function renderQuizzesPage(app) {
 
 // =================== PAGE: LEADERBOARD ===================
 
-function renderLeaderboardPage(app) {
+function renderLeaderboardPage(app, params = {}) {
+  // Set event from URL suffix (e.g., #/leaderboard/vmatm00s)
+  if (params.suffix) {
+    setActiveEventId(params.suffix);
+  }
+
   app.innerHTML = `
     <div class="page-container">
       <div class="page-header">

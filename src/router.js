@@ -24,17 +24,32 @@ function handleRoute() {
   const hash = window.location.hash.slice(1) || '/home';
   const path = hash.startsWith('/') ? hash : '/' + hash;
 
-  // Find matching route
-  const handler = routes[path];
+  // Try exact match first
+  let handler = routes[path];
+  let params = {};
+
   if (handler) {
     currentRoute = path;
+  } else {
+    // Try prefix match for parameterized routes (e.g., /leaderboard/vmatm00s)
+    for (const [routePath, routeHandler] of Object.entries(routes)) {
+      if (path.startsWith(routePath + '/')) {
+        handler = routeHandler;
+        params.suffix = path.slice(routePath.length + 1);
+        currentRoute = routePath;
+        break;
+      }
+    }
+  }
+
+  if (handler) {
     const app = document.getElementById('app');
     if (app) {
       app.innerHTML = '';
-      handler(app);
+      handler(app, params);
       window.scrollTo(0, 0);
     }
-    updateActiveNav(path);
+    updateActiveNav(currentRoute);
   } else {
     // Default to home
     navigateTo('/home');

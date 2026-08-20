@@ -22,7 +22,7 @@ export const EVENTS = [
     contract: '0xb5456aDfa33BD3c94A6E021541d73Abc26A19138',
   },
   {
-    id: 'x11ckwi5', //extracted from https://luma.com/vmatm00s
+    id: 'x11ckwi5', //extracted from https://luma.com/x11ckwi5
     name: 'Road to DevCon 8 — Workshop Edition ft. DBIT Mumbai',
     contract: '0xb54c3d5fea76dae38e615cc1ecf7024c7afc1b2d',
   },
@@ -47,5 +47,5 @@ export const EVENTS = [
   // },
 ];
 
-// The first event is the default selection
-export const DEFAULT_EVENT_ID = EVENTS[0]?.id || '';
+// The last event is the most recent and therefore the default
+export const DEFAULT_EVENT_ID = EVENTS.length > 0 ? EVENTS[EVENTS.length - 1].id : '';
