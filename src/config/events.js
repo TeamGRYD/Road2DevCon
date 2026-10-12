@@ -26,6 +26,11 @@ export const EVENTS = [
     name: 'Road to DevCon 8 — Workshop Edition ft. DBIT Mumbai',
     contract: '0xb54c3d5fea76dae38e615cc1ecf7024c7afc1b2d',
   },
+  {
+    id: 'rtta1cub', //extracted from https://luma.com/rtta1cub
+    name: 'Hacktoberfest Hack Day Mumbai x FAIR ft. RTD 8',
+    contract: '0x487cb8c812e4177107884799fdbe61a2b4374c73',
+  },
 
   // ──────────────────────────────────────────────────────
   // Example entries (uncomment and fill in after deploying)
