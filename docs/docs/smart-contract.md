@@ -5,6 +5,10 @@ title: Smart Contract
 
 # 📜 QuizScores Smart Contract
 
+:::info Legacy contract
+This page documents **QuizScores v1**, used by the first three events (marked `legacy: true` in `src/config/events.js`). New events use **QuizScoresV2** with the shared **ProfileRegistry**. See [Profiles & Migration](/profiles).
+:::
+
 The `QuizScores.sol` contract is the on-chain backbone of the portal's quiz and leaderboard system. Deployed on the **Ethereum Sepolia testnet**, it stores participant data and quiz scores in a transparent, tamper-proof manner.
 
 ## Contract Overview

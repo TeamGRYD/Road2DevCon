@@ -6,6 +6,37 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.3.0] - 2026-10-17
+
+### Added
+
+#### Feed Tab (`src/feed.js`, `src/config/topics.js`, `contracts/FeedContract.sol`)
+- New **Feed** tab (before Presentations) with topics stacked vertically and each topic's posts scrolling horizontally
+- Supports public **X**, **YouTube** (videos + Shorts) and **Instagram** (posts + Reels) links, with inline video playback through each platform's embed code (no API keys)
+- Embeds load only when a card scrolls near the viewport
+- On-chain submissions and up/downvotes (one vote per wallet per post, toggle or clear; no self-votes), gated on a registered profile
+- Media stored as a canonical `(platform, mediaId)` pair; the same post can't be submitted twice to one topic
+- Global **Top / New** sort toggle; floating **+** submit button with live preview
+- Owner-only `setHidden` moderation
+- Topics defined via PR in `src/config/topics.js` (append-only IDs); first topic: *Why do you want to attend the Devcon?*
+
+#### Profile Registry (`contracts/ProfileRegistry.sol`)
+- Shared profile store (name + X username) for quizzes and the Feed
+- One-time on-chain migration from the legacy QuizScores contracts (`migrateFrom`, newest event first), then `finalizeMigration()` opens registration and removes owner privileges
+
+#### QuizScoresV2 (`contracts/QuizScoresV2.sol`)
+- Scores-only quiz contract for future events; profiles read from the registry
+- Signed score message now includes the contract address and chain ID, so a signature can't be replayed on another event's contract
+
+### Changed
+- `src/config/events.js`: existing events marked `legacy: true`; the leaderboard reads names from the event contract for legacy events and from the registry for V2 events
+- `src/wallet.js`: profile lookup and registration use the registry when `VITE_PROFILE_REGISTRY_ADDRESS` is set, falling back to the legacy contract otherwise
+- `api/quiz/complete.js`: detects v1 vs v2 contracts and signs the matching message format
+- New env vars: `VITE_PROFILE_REGISTRY_ADDRESS`, `VITE_FEED_CONTRACT_ADDRESS`
+- Docs: new *Feed*, *Feed Topics* and *Profiles & Migration* pages (Remix deployment, migration runbook, test checklists)
+
+---
+
 ## [0.2.5] - 2026-08-20
 
 ### Added

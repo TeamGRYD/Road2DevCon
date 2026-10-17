@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { getSigner, getAddress, isConnected, connectWallet } from './wallet.js';
-import { QUIZ_SCORES_ABI, CONTRACT_ADDRESS } from './abi.js';
+import { QUIZ_SCORES_V2_ABI, CONTRACT_ADDRESS } from './abi.js';
 
 // =================== CONSTANTS ===================
 const HARD_TIMER_SECONDS = 30;
@@ -401,7 +401,8 @@ async function submitScoreOnChain(serverData) {
 
   try {
     const signerInstance = getSigner();
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, QUIZ_SCORES_ABI, signerInstance);
+    // submitScore has the same signature on v1 and v2 contracts
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, QUIZ_SCORES_V2_ABI, signerInstance);
 
     const progressEl = document.getElementById('submit-progress');
     if (progressEl) progressEl.textContent = '⏳ Confirm the transaction in MetaMask...';

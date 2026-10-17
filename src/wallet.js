@@ -1,5 +1,8 @@
 import { ethers } from 'ethers';
-import { SEPOLIA_CHAIN_ID, SEPOLIA_NETWORK, SEPOLIA_CHAIN_ID_DEC, QUIZ_SCORES_ABI, CONTRACT_ADDRESS } from './abi.js';
+import {
+  SEPOLIA_CHAIN_ID, SEPOLIA_NETWORK, SEPOLIA_CHAIN_ID_DEC,
+  QUIZ_SCORES_ABI, CONTRACT_ADDRESS, PROFILE_REGISTRY_ABI, PROFILE_REGISTRY_ADDRESS
+} from './abi.js';
 
 let provider = null;
 let signer = null;
@@ -95,22 +98,35 @@ export function disconnectWallet() {
 
 // =================== REGISTRATION CHECK ===================
 
+// Profiles live in the ProfileRegistry once it is configured. Until then,
+// fall back to the legacy QuizScores contract (which stores profiles itself).
+function getProfileContract(runner) {
+  if (PROFILE_REGISTRY_ADDRESS) {
+    return new ethers.Contract(PROFILE_REGISTRY_ADDRESS, PROFILE_REGISTRY_ABI, runner);
+  }
+  if (CONTRACT_ADDRESS) {
+    return new ethers.Contract(CONTRACT_ADDRESS, QUIZ_SCORES_ABI, runner);
+  }
+  return null;
+}
+
 async function checkRegistration() {
-  if (!CONTRACT_ADDRESS || !connectedAddress) {
+  const contract = getProfileContract(provider);
+  if (!contract || !connectedAddress) {
     participantData = { registered: false };
     return;
   }
 
   try {
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, QUIZ_SCORES_ABI, provider);
     const registered = await contract.isRegistered(connectedAddress);
 
     if (registered) {
-      const data = await contract.getParticipant(connectedAddress);
+      const data = PROFILE_REGISTRY_ADDRESS
+        ? await contract.getProfile(connectedAddress)
+        : await contract.getParticipant(connectedAddress);
       participantData = {
         name: data.name,
         xUsername: data.xUsername,
-        quizScores: data.quizScores,
         registered: true
       };
     } else {
@@ -200,8 +216,8 @@ async function handleRegistration() {
   // Strip @ prefix if present
   xUsername = xUsername.startsWith('@') ? xUsername.slice(1) : xUsername;
 
-  if (!CONTRACT_ADDRESS) {
-    statusEl.textContent = '⚠️ Contract not configured. Set VITE_CONTRACT_ADDRESS in .env';
+  if (!PROFILE_REGISTRY_ADDRESS && !CONTRACT_ADDRESS) {
+    statusEl.textContent = '⚠️ Contract not configured. Set VITE_PROFILE_REGISTRY_ADDRESS in .env';
     statusEl.style.color = '#F97316';
     return;
   }
@@ -212,14 +228,15 @@ async function handleRegistration() {
     statusEl.textContent = '⏳ Confirm the transaction in MetaMask...';
     statusEl.style.color = '#7235ED';
 
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, QUIZ_SCORES_ABI, signer);
+    const contract = getProfileContract(signer);
     const tx = await contract.register(name, xUsername);
 
     statusEl.textContent = '⏳ Transaction submitted! Waiting for confirmation...';
     await tx.wait();
 
     // Update local state
-    participantData = { name, xUsername, registered: true, quizScores: [0n, 0n, 0n, 0n] };
+    participantData = { name, xUsername, registered: true };
+    window.dispatchEvent(new CustomEvent('profile-registered'));
 
     submitBtn.innerHTML = '✅ Registered!';
     submitBtn.classList.add('success');
@@ -244,6 +261,8 @@ async function handleRegistration() {
 
     if (err.code === 'ACTION_REJECTED' || err.code === 4001) {
       statusEl.textContent = '❌ Transaction rejected. Please try again.';
+    } else if (err.reason?.includes('not open yet') || err.message?.includes('not open yet')) {
+      statusEl.textContent = '⏳ Registration opens once the profile migration is complete. Please try again later.';
     } else if (err.reason?.includes('already taken') || err.message?.includes('already taken')) {
       statusEl.textContent = '❌ This X username is already registered to another wallet.';
     } else if (err.reason?.includes('Already registered') || err.message?.includes('Already registered')) {

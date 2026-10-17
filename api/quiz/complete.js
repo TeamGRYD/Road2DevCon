@@ -5,8 +5,23 @@ const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
 const RPC_URL = process.env.RPC_URL || 'https://ethereum-sepolia-rpc.publicnode.com';
 const CONTRACT_ADDRESS = process.env.VITE_CONTRACT_ADDRESS || '';
 
-// Minimal ABI for reading nonce
-const NONCE_ABI = ['function nonces(address) view returns (uint256)'];
+// Minimal ABI for reading nonce and detecting the contract version
+// (only QuizScoresV2 exposes registry())
+const NONCE_ABI = [
+  'function nonces(address) view returns (uint256)',
+  'function registry() view returns (address)'
+];
+
+async function isV2Contract(contract) {
+  try {
+    await contract.registry();
+    return true;
+  } catch (err) {
+    // A revert means the function doesn't exist (v1); anything else is a real error
+    if (err.code === 'CALL_EXCEPTION' || err.code === 'BAD_DATA') return false;
+    throw err;
+  }
+}
 
 /**
  * POST /api/quiz/complete
@@ -56,20 +71,30 @@ export default async function handler(req, res) {
     const score = session.score;
     const correctCount = session.answers.filter(a => a.pointsEarned > 0).length;
 
-    // Read current nonce from contract
+    // Read current nonce and contract version from contract
     let nonce = 0;
+    let v2 = false;
+    let chainId = 0n;
     if (CONTRACT_ADDRESS) {
       const provider = new ethers.JsonRpcProvider(RPC_URL);
       const contract = new ethers.Contract(CONTRACT_ADDRESS, NONCE_ABI, provider);
       nonce = Number(await contract.nonces(session.wallet));
+      v2 = await isV2Contract(contract);
+      if (v2) chainId = (await provider.getNetwork()).chainId;
     }
 
     // Sign the score with admin key
-    // Must match: keccak256(abi.encodePacked(wallet, quizId, score, nonce))
-    const messageHash = ethers.solidityPackedKeccak256(
-      ['address', 'uint8', 'uint256', 'uint256'],
-      [session.wallet, session.quizId, score, nonce]
-    );
+    // v2 must match: keccak256(abi.encodePacked(contract, chainid, wallet, quizId, score, nonce))
+    // v1 must match: keccak256(abi.encodePacked(wallet, quizId, score, nonce))
+    const messageHash = v2
+      ? ethers.solidityPackedKeccak256(
+          ['address', 'uint256', 'address', 'uint8', 'uint256', 'uint256'],
+          [CONTRACT_ADDRESS, chainId, session.wallet, session.quizId, score, nonce]
+        )
+      : ethers.solidityPackedKeccak256(
+          ['address', 'uint8', 'uint256', 'uint256'],
+          [session.wallet, session.quizId, score, nonce]
+        );
 
     const adminWallet = new ethers.Wallet(ADMIN_PRIVATE_KEY);
     const signature = await adminWallet.signMessage(ethers.getBytes(messageHash));

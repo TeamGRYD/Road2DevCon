@@ -25,7 +25,10 @@ const sidebars = {
       ],
     },
     'quizzes',
+    'feed',
+    'topics',
     'smart-contract',
+    'profiles',
     'resources',
   ],
 };

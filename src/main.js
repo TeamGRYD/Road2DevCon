@@ -5,6 +5,7 @@ import { connectWallet, initWalletListeners, isConnected, isRegistered, getAddre
 import { startQuiz } from './quiz.js';
 import { loadLeaderboard, initLeaderboard, setActiveEventId } from './leaderboard.js';
 import { openSlidePresenter } from './slides.js';
+import { renderFeedPage, initFeed } from './feed.js';
 import { registerRoute, initRouter, navigateTo } from './router.js';
 
 // =================== INITIALIZATION ===================
@@ -12,11 +13,13 @@ import { registerRoute, initRouter, navigateTo } from './router.js';
 document.addEventListener('DOMContentLoaded', () => {
   initWalletListeners();
   initLeaderboard();
+  initFeed();
   initNotifications();
   initMobileNav();
 
   // Register pages
   registerRoute('/home', renderHomePage);
+  registerRoute('/feed', renderFeedPage);
   registerRoute('/presentations', renderPresentationsPage);
   registerRoute('/quizzes', renderQuizzesPage);
   registerRoute('/leaderboard', renderLeaderboardPage);

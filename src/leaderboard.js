@@ -1,5 +1,7 @@
 import { ethers } from 'ethers';
-import { QUIZ_SCORES_ABI, SEPOLIA_RPC_URL } from './abi.js';
+import {
+  QUIZ_SCORES_ABI, QUIZ_SCORES_V2_ABI, PROFILE_REGISTRY_ABI, PROFILE_REGISTRY_ADDRESS, SEPOLIA_RPC_URL
+} from './abi.js';
 import { quizQuestions } from './data/quizQuestions.js';
 import { EVENTS, DEFAULT_EVENT_ID } from './config/events.js';
 
@@ -95,7 +97,11 @@ export async function loadLeaderboard(container) {
 
   try {
     const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL);
-    const contract = new ethers.Contract(event.contract, QUIZ_SCORES_ABI, provider);
+    const contract = new ethers.Contract(
+      event.contract,
+      event.legacy ? QUIZ_SCORES_ABI : QUIZ_SCORES_V2_ABI,
+      provider
+    );
 
     const participantCount = await contract.getParticipantCount();
     const count = Number(participantCount);
@@ -112,21 +118,9 @@ export async function loadLeaderboard(container) {
     }
 
     const batchSize = 50;
-    leaderboardData = [];
-
-    for (let start = 0; start < count; start += batchSize) {
-      const batch = await contract.getLeaderboardBatch(start, batchSize);
-      for (let i = 0; i < batch.wallets.length; i++) {
-        const scores = batch.scores[i].map(s => Number(s));
-        leaderboardData.push({
-          wallet: batch.wallets[i],
-          name: batch.names[i],
-          xUsername: batch.xUsernames[i],
-          scores: scores,
-          totalScore: scores.reduce((a, b) => a + b, 0)
-        });
-      }
-    }
+    leaderboardData = event.legacy
+      ? await fetchLegacyLeaderboard(contract, count, batchSize)
+      : await fetchLeaderboard(contract, count, batchSize, provider);
 
     leaderboardData.sort((a, b) => b.totalScore - a.totalScore);
     renderLeaderboard(area, event.contract);
@@ -143,6 +137,50 @@ export async function loadLeaderboard(container) {
       </div>
     `;
   }
+}
+
+// =================== DATA FETCHING ===================
+
+// QuizScores v1: profiles are stored in the event contract itself
+async function fetchLegacyLeaderboard(contract, count, batchSize) {
+  const rows = [];
+  for (let start = 0; start < count; start += batchSize) {
+    const batch = await contract.getLeaderboardBatch(start, batchSize);
+    for (let i = 0; i < batch.wallets.length; i++) {
+      rows.push(toRow(batch.wallets[i], batch.names[i], batch.xUsernames[i], batch.scores[i]));
+    }
+  }
+  return rows;
+}
+
+// QuizScoresV2: scores from the event contract, profiles from ProfileRegistry
+async function fetchLeaderboard(contract, count, batchSize, provider) {
+  if (!PROFILE_REGISTRY_ADDRESS) {
+    throw new Error('Profile registry not configured. Set VITE_PROFILE_REGISTRY_ADDRESS.');
+  }
+  const registry = new ethers.Contract(PROFILE_REGISTRY_ADDRESS, PROFILE_REGISTRY_ABI, provider);
+  const rows = [];
+  for (let start = 0; start < count; start += batchSize) {
+    const batch = await contract.getLeaderboardBatch(start, batchSize);
+    const wallets = [...batch.wallets];
+    if (wallets.length === 0) continue;
+    const profiles = await registry.getProfilesBatch(wallets);
+    for (let i = 0; i < wallets.length; i++) {
+      rows.push(toRow(wallets[i], profiles.names[i], profiles.xUsernames[i], batch.batchScores[i]));
+    }
+  }
+  return rows;
+}
+
+function toRow(wallet, name, xUsername, rawScores) {
+  const scores = rawScores.map(s => Number(s));
+  return {
+    wallet,
+    name,
+    xUsername,
+    scores,
+    totalScore: scores.reduce((a, b) => a + b, 0)
+  };
 }
 
 // =================== RENDERING ===================

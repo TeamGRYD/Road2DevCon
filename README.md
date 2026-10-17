@@ -33,6 +33,9 @@ The workshop covers Ethereum's core principles through the **CROPS** framework:
 
 ## Features
 
+### 📣 Feed
+Topic-based community feed of X, YouTube and Instagram posts, with inline video playback. Topics stack vertically, and each topic's posts scroll horizontally. Submissions and up/downvotes are on-chain transactions on `FeedContract.sol`, tied to the submitter's profile. Topics are added via PR to `src/config/topics.js`.
+
 ### 📊 Presentations
 5 slide decks that can be presented directly from the portal, covering blockchain fundamentals through to DevCon 8 participation.
 
@@ -50,10 +53,10 @@ Two hands-on, guided tutorials where participants deploy real smart contracts:
 2. **Private Voting** — A commit-reveal voting contract with security best practices
 
 ### 🏆 On-Chain Leaderboard
-Multi-event leaderboard powered by `QuizScores.sol` smart contracts on Sepolia. Each event (e.g., university workshop) gets its own contract and leaderboard, switchable via a dropdown. Each event links to its Luma page. Events are configured in `src/config/events.js` — no env var changes needed.
+Multi-event leaderboard powered by quiz contracts on Sepolia (`QuizScores.sol` for legacy events, `QuizScoresV2.sol` + `ProfileRegistry.sol` for new ones). Each event (e.g., university workshop) gets its own contract and leaderboard, switchable via a dropdown. Each event links to its Luma page. Events are configured in `src/config/events.js` — no env var changes needed.
 
 ### 🔗 Wallet Integration
-MetaMask wallet connection with on-chain registration (name + X username permanently linked to wallet) and quiz score submission on Sepolia testnet.
+MetaMask wallet connection with on-chain registration in the shared `ProfileRegistry.sol` (name + X username permanently linked to wallet, used by quizzes and the Feed) and quiz score submission on Sepolia testnet.
 
 ## Tech Stack
 
@@ -101,7 +104,9 @@ npx vercel dev
 **Client-side** (in `.env` file):
 
 ```env
-VITE_CONTRACT_ADDRESS=<deployed-QuizScores-contract-address>
+VITE_CONTRACT_ADDRESS=<active-quiz-contract-address>
+VITE_PROFILE_REGISTRY_ADDRESS=<ProfileRegistry-address>
+VITE_FEED_CONTRACT_ADDRESS=<FeedContract-address>
 VITE_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
 ```
 
@@ -129,7 +134,10 @@ Road2DevCon/
 ├── .env.example               # Environment template
 │
 ├── contracts/
-│   └── QuizScores.sol         # On-chain quiz scores (anti-cheat)
+│   ├── QuizScores.sol         # v1 quiz scores + profiles (legacy events)
+│   ├── QuizScoresV2.sol       # Quiz scores for new events (anti-cheat)
+│   ├── ProfileRegistry.sol    # Shared profiles + one-time v1 migration
+│   └── FeedContract.sol       # Feed submissions + up/downvotes
 │
 ├── api/                       # Vercel Serverless Functions
 │   ├── package.json           # API dependencies (ethers, jsonwebtoken)
@@ -147,10 +155,12 @@ Road2DevCon/
 │   ├── slides.js              # Presentation slide engine
 │   ├── quiz.js                # Quiz engine (server-backed, 30s timer)
 │   ├── leaderboard.js         # Multi-event on-chain leaderboard
+│   ├── feed.js                # Topic feed, embeds, voting, submit modal
 │   ├── wallet.js              # MetaMask wallet + registration
-│   ├── abi.js                 # QuizScores contract ABI
+│   ├── abi.js                 # Contract ABIs + addresses
 │   ├── config/
-│   │   └── events.js          # Event definitions (name + contract address)
+│   │   ├── events.js          # Event definitions (name + contract address)
+│   │   └── topics.js          # Feed topics (append-only IDs)
 │   └── data/
 │       ├── presentations.js   # 5 presentation content sets
 │       ├── quizQuestions.js   # Quiz metadata (NO correct answers)
@@ -170,6 +180,8 @@ Road2DevCon/
 ```
 
 ## Smart Contract
+
+> New events use `QuizScoresV2.sol` with the shared `ProfileRegistry.sol`, and the Feed uses `FeedContract.sol`. See the [Profiles & Migration](https://wiki.road2devcon.quest/profiles) and [Feed](https://wiki.road2devcon.quest/feed) docs for deployment, migration and testing steps. The section below describes the legacy v1 contract.
 
 The `QuizScores.sol` contract stores participant quiz scores on-chain with anti-cheat protections:
 

@@ -84,7 +84,7 @@ Each student receives a **different set of 10 questions** from a pool of 100+. O
 
 ## Leaderboard
 
-The leaderboard supports **multiple events** — each event (e.g., a university workshop) has its own deployed [QuizScores contract](/smart-contract) on Sepolia. Users can switch between events using a dropdown on the leaderboard page. A **Luma ↗** button next to the dropdown links to the event's Luma page.
+The leaderboard supports **multiple events** — each event (e.g., a university workshop) has its own deployed quiz contract on Sepolia: [QuizScores v1](/smart-contract) for the first three events (`legacy: true`), [QuizScoresV2](/profiles) for newer ones, with names read from the shared Profile Registry. Users can switch between events using a dropdown on the leaderboard page. A **Luma ↗** button next to the dropdown links to the event's Luma page.
 
 For each event, the leaderboard displays:
 
@@ -107,6 +107,7 @@ For example: `#/leaderboard/vmatm00s` links directly to the ATLAS SkillTech lead
 
 ### Adding a New Event
 
-1. Deploy a fresh `QuizScores.sol` on Sepolia via Remix
-2. **Append** a new entry to the end of `src/config/events.js` with the event name, Luma URL ID, and contract address (the last entry is automatically the default)
-3. Commit and deploy — the leaderboard dropdown and Luma link update automatically
+1. Deploy a fresh `QuizScoresV2.sol` on Sepolia via Remix, passing the admin address and the ProfileRegistry address (see [Profiles & Migration](/profiles#5-next-event))
+2. **Append** a new entry to the end of `src/config/events.js` with the event name, Luma URL ID, and contract address, **without** `legacy: true` (the last entry is automatically the default)
+3. Point `VITE_CONTRACT_ADDRESS` at the new contract
+4. Commit and deploy — the leaderboard dropdown and Luma link update automatically
