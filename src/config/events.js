@@ -39,6 +39,12 @@ export const EVENTS = [
     contract: '0x487cb8c812e4177107884799fdbe61a2b4374c73',
     legacy: true,
   },
+{
+    id: 'o7710uv3', //extracted from https://luma.com/o7710uv3
+    name: 'Open Source Hub at Devcon Mumbai',
+    contract: '0x1ec95Ce1e9784328cb0e982Ec7B8c556fe3Ca68b',
+    legacy: false,
+  },
 
   // ──────────────────────────────────────────────────────
   // Example entries (uncomment and fill in after deploying)
