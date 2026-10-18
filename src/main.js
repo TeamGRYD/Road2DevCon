@@ -111,8 +111,8 @@ function renderHomePage(app) {
           <span>Security</span>
         </div>
         <div class="hero-actions">
-          <a href="#/presentations" class="btn btn-primary btn-lg">Explore Presentations</a>
-          <a href="#/quizzes" class="btn btn-secondary btn-lg">Take a Quiz</a>
+          <a href="/presentations" class="btn btn-primary btn-lg">Explore Presentations</a>
+          <a href="/quizzes" class="btn btn-secondary btn-lg">Take a Quiz</a>
         </div>
       </div>
     </section>
