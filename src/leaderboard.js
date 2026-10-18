@@ -77,8 +77,8 @@ export async function loadLeaderboard(container) {
     container.querySelector('#event-dropdown').addEventListener('change', (e) => {
       activeEventId = e.target.value;
       activeTab = 'all';
-      // Update URL hash for deep-linking
-      history.replaceState(null, '', `#/leaderboard/${activeEventId}`);
+      // Update URL path for deep-linking
+      history.replaceState(null, '', `/leaderboard/${activeEventId}`);
       // Update Luma link
       const lumaLink = container.querySelector('#event-luma-link');
       if (lumaLink) {
