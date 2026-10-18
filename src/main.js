@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initMobileNav();
 
   // Register pages
+  registerRoute('/', renderHomePage);
   registerRoute('/home', renderHomePage);
   registerRoute('/feed', renderFeedPage);
   registerRoute('/presentations', renderPresentationsPage);
