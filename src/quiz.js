@@ -1,6 +1,7 @@
 import { ethers } from 'ethers';
 import { getSigner, getAddress, isConnected, connectWallet } from './wallet.js';
 import { QUIZ_SCORES_V2_ABI, CONTRACT_ADDRESS } from './abi.js';
+import { navigateTo } from './router.js';
 
 // =================== CONSTANTS ===================
 const HARD_TIMER_SECONDS = 30;
