@@ -81,7 +81,7 @@ Anyone who registers on a v1 contract after its migration batch has run won't be
 
 ### 2. Deploy and migrate the registry
 
-1. Deploy `ProfileRegistry.sol` (no constructor arguments). The deploying wallet becomes the owner.
+1. Deploy `ProfileRegistry.sol` with `(forwarderAddress)` (see [Gasless Transactions](/gasless); `0x0000000000000000000000000000000000000000` disables gasless calls). The deploying wallet becomes the owner.
 2. For each legacy contract, **newest first**, call `migrateFrom(address, start, count)` in batches of ~30–50:
 
    | Order | Event | Contract |
@@ -96,7 +96,7 @@ Anyone who registers on a v1 contract after its migration batch has run won't be
 
 ### 3. Deploy the feed
 
-Deploy `FeedContract.sol` with the registry address. The deploying wallet becomes the moderator (see [Feed](/feed#moderation)).
+Deploy `FeedContract.sol` with `(registryAddress, forwarderAddress)`. The deploying wallet becomes the moderator (see [Feed](/feed#moderation)).
 
 ### 4. Point the portal at the new contracts
 
@@ -113,7 +113,7 @@ Only set `VITE_PROFILE_REGISTRY_ADDRESS` **after** `finalizeMigration()`. Before
 
 ### 5. Next event
 
-1. Deploy `QuizScoresV2.sol` with `(adminAddress, registryAddress)`.
+1. Deploy `QuizScoresV2.sol` with `(adminAddress, registryAddress, forwarderAddress)`.
 2. Append it to `src/config/events.js` **without** `legacy: true`.
 3. Point `VITE_CONTRACT_ADDRESS` at it. No API change is needed; the signing format is detected automatically.
 
@@ -122,11 +122,11 @@ Only set `VITE_PROFILE_REGISTRY_ADDRESS` **after** `finalizeMigration()`. Before
 Run this before touching Sepolia (**Remix VM** environment, several accounts):
 
 1. Deploy two v1 `QuizScores` contracts. Register overlapping wallets, including the same wallet on both with different names, and two wallets with the same X handle (different case) on different contracts.
-2. Deploy `ProfileRegistry`. Confirm `register` reverts with *Registration not open yet*.
+2. Deploy `ProfileRegistry(0x0)`. Confirm `register` reverts with *Registration not open yet*.
 3. `migrateFrom` the newer contract, then the older one. Check that:
    - the shared wallet has the **newer** name
    - the clashing handle went to the newer contract's wallet, and the other got `MigrationSkipped` with reason `2`
    - re-running a batch changes nothing
 4. `finalizeMigration`. Confirm `migrateFrom` now reverts, `register` works, and a taken handle in different case is rejected.
-5. Deploy `QuizScoresV2(admin, registry)`. Sign a score from the admin account and submit it. Deploy a second V2 and confirm the **same signature is rejected** there.
-6. Deploy `FeedContract(registry)` and run the checks in [Feed → Testing](/feed#testing).
+5. Deploy `QuizScoresV2(admin, registry, 0x0)`. Sign a score from the admin account and submit it. Deploy a second V2 and confirm the **same signature is rejected** there.
+6. Deploy `FeedContract(registry, 0x0)` and run the checks in [Feed → Testing](/feed#testing).

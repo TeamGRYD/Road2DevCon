@@ -15,7 +15,8 @@
 //
 // To add a new event:
 //   1. Deploy a fresh QuizScoresV2.sol on Sepolia via Remix, passing the
-//      admin address and the ProfileRegistry address to the constructor
+//      admin address, the ProfileRegistry address and the GaslessForwarder
+//      address to the constructor
 //   2. Add a new entry below with the contract address (no `legacy` flag)
 //   3. Commit and deploy — the leaderboard dropdown updates automatically
 // ============================================================

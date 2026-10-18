@@ -3,6 +3,7 @@ import {
   SEPOLIA_CHAIN_ID, SEPOLIA_NETWORK, SEPOLIA_CHAIN_ID_DEC,
   QUIZ_SCORES_ABI, CONTRACT_ADDRESS, PROFILE_REGISTRY_ABI, PROFILE_REGISTRY_ADDRESS
 } from './abi.js';
+import { isGasless, sendContractTx } from './gasless.js';
 
 let provider = null;
 let signer = null;
@@ -110,6 +111,10 @@ function getProfileContract(runner) {
   return null;
 }
 
+function getProfileContractAddress() {
+  return PROFILE_REGISTRY_ADDRESS || CONTRACT_ADDRESS;
+}
+
 async function checkRegistration() {
   const contract = getProfileContract(provider);
   if (!contract || !connectedAddress) {
@@ -172,7 +177,7 @@ function showRegistrationModal() {
         <ul>
           <li>Your name and X username <strong>cannot be changed</strong> after registration.</li>
           <li>Each X username can only be used <strong>once</strong>.</li>
-          <li>Registration is a <strong>blockchain transaction</strong> (requires Sepolia ETH for gas).</li>
+          <li id="reg-gas-info">Registration is a <strong>blockchain transaction</strong> (requires Sepolia ETH for gas).</li>
         </ul>
       </div>
 
@@ -192,6 +197,14 @@ function showRegistrationModal() {
   };
 
   document.getElementById('reg-submit-btn').onclick = handleRegistration;
+
+  isGasless(getProfileContractAddress()).then((gasless) => {
+    if (!gasless) return;
+    const gasInfo = document.getElementById('reg-gas-info');
+    const note = document.getElementById('reg-status');
+    if (gasInfo) gasInfo.innerHTML = 'Registration is stored on-chain, and <strong>gas is on us</strong>. You only sign a message, no ETH needed.';
+    if (note && !note.dataset.busy) note.textContent = 'You will be asked to sign a message in your wallet.';
+  });
 
   // Enter key support
   content.querySelectorAll('input').forEach(input => {
@@ -225,11 +238,15 @@ async function handleRegistration() {
   try {
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spinner"></span> Registering...';
-    statusEl.textContent = '⏳ Confirm the transaction in MetaMask...';
+    statusEl.dataset.busy = 'true';
+    const address = getProfileContractAddress();
+    statusEl.textContent = (await isGasless(address))
+      ? '⏳ Sign the request in MetaMask (no gas needed)...'
+      : '⏳ Confirm the transaction in MetaMask...';
     statusEl.style.color = '#7235ED';
 
-    const contract = getProfileContract(signer);
-    const tx = await contract.register(name, xUsername);
+    const abi = PROFILE_REGISTRY_ADDRESS ? PROFILE_REGISTRY_ABI : QUIZ_SCORES_ABI;
+    const tx = await sendContractTx(signer, address, abi, 'register', [name, xUsername]);
 
     statusEl.textContent = '⏳ Transaction submitted! Waiting for confirmation...';
     await tx.wait();

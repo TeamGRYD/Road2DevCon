@@ -165,6 +165,10 @@ export const PROFILE_REGISTRY_ADDRESS = import.meta.env.VITE_PROFILE_REGISTRY_AD
 // Feed contract (submissions + votes)
 export const FEED_CONTRACT_ADDRESS = import.meta.env.VITE_FEED_CONTRACT_ADDRESS || '';
 
+// ERC-2771 forwarder (GaslessForwarder.sol). When set, calls to contracts that
+// trust it are signed by the participant and paid for by the gas station.
+export const FORWARDER_ADDRESS = import.meta.env.VITE_FORWARDER_ADDRESS || '';
+
 // Sepolia RPC URL - configurable via env, with reliable fallback
 export const SEPOLIA_RPC_URL = import.meta.env.VITE_RPC_URL || 'https://ethereum-sepolia-rpc.publicnode.com';
 

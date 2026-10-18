@@ -1,6 +1,6 @@
-import { ethers } from 'ethers';
 import { getSigner, getAddress, isConnected, connectWallet } from './wallet.js';
 import { QUIZ_SCORES_V2_ABI, CONTRACT_ADDRESS } from './abi.js';
+import { isGasless, sendContractTx } from './gasless.js';
 import { navigateTo } from './router.js';
 
 // =================== CONSTANTS ===================
@@ -369,7 +369,7 @@ async function completeQuiz() {
 
     // Now submit to blockchain — score is still hidden from user
     const progressEl = document.getElementById('submit-progress');
-    if (progressEl) progressEl.textContent = '🔗 Submitting score on-chain... Please confirm in MetaMask.';
+    if (progressEl) progressEl.textContent = '🔗 Submitting score on-chain...';
 
     await submitScoreOnChain(data);
 
@@ -401,14 +401,15 @@ async function submitScoreOnChain(serverData) {
   }
 
   try {
-    const signerInstance = getSigner();
-    // submitScore has the same signature on v1 and v2 contracts
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, QUIZ_SCORES_V2_ABI, signerInstance);
-
     const progressEl = document.getElementById('submit-progress');
-    if (progressEl) progressEl.textContent = '⏳ Confirm the transaction in MetaMask...';
+    if (progressEl) {
+      progressEl.textContent = (await isGasless(CONTRACT_ADDRESS))
+        ? '⏳ Sign the request in MetaMask (no gas needed)...'
+        : '⏳ Confirm the transaction in MetaMask...';
+    }
 
-    const tx = await contract.submitScore(quizId, score, nonce, signature);
+    // submitScore has the same signature on v1 and v2 contracts
+    const tx = await sendContractTx(getSigner(), CONTRACT_ADDRESS, QUIZ_SCORES_V2_ABI, 'submitScore', [quizId, score, nonce, signature]);
 
     if (progressEl) progressEl.textContent = '⏳ Transaction submitted! Waiting for confirmation...';
 

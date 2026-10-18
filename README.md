@@ -107,6 +107,7 @@ npx vercel dev
 VITE_CONTRACT_ADDRESS=<active-quiz-contract-address>
 VITE_PROFILE_REGISTRY_ADDRESS=<ProfileRegistry-address>
 VITE_FEED_CONTRACT_ADDRESS=<FeedContract-address>
+VITE_FORWARDER_ADDRESS=<GaslessForwarder-address>
 VITE_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
 ```
 
@@ -114,10 +115,14 @@ VITE_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
 
 | Variable | Description |
 |----------|-------------|
-| `ADMIN_PRIVATE_KEY` | Admin wallet private key (signs quiz scores) |
+| `ADMIN_PRIVATE_KEY` | Admin wallet private key (signs quiz scores; gas station for gasless transactions) |
 | `ADMIN_ADDRESS` | Admin wallet address |
 | `JWT_SECRET` | Random 32+ character string for session tokens |
 | `RPC_URL` | Sepolia RPC URL (default: `https://ethereum-sepolia-rpc.publicnode.com`) |
+| `GAS_STATION_MAX_FEE_GWEI` | Optional. Gas station won't relay above this fee (default: `50`) |
+| `GAS_STATION_MIN_BALANCE_ETH` | Optional. Gas station stops relaying below this balance (default: `0.005`) |
+
+> **Gasless UX**: registration, quiz scores and Feed posts/votes are signed by the participant and paid for by the admin wallet through `api/relay.js` and `GaslessForwarder.sol`. See [Gasless Transactions](https://wiki.road2devcon.quest/gasless) for the rollout steps.
 
 > **⚠️ Security Note**: Server-side variables must NOT have the `VITE_` prefix. Never store private keys in `.env` files that are committed to version control.
 
@@ -136,14 +141,16 @@ Road2DevCon/
 ├── contracts/
 │   ├── QuizScores.sol         # v1 quiz scores + profiles (legacy events)
 │   ├── QuizScoresV2.sol       # Quiz scores for new events (anti-cheat)
-│   ├── ProfileRegistry.sol    # Shared profiles + one-time v1 migration
-│   └── FeedContract.sol       # Feed submissions + up/downvotes
+│   ├── ProfileRegistry.sol    # Shared profiles + one-time migration
+│   ├── FeedContract.sol       # Feed submissions + up/downvotes
+│   └── GaslessForwarder.sol   # ERC-2771 forwarder for gasless transactions
 │
 ├── api/                       # Vercel Serverless Functions
 │   ├── package.json           # API dependencies (ethers, jsonwebtoken)
 │   ├── lib/
 │   │   ├── jwt.js             # JWT session management
 │   │   └── questions.js       # 400+ questions with correct answers
+│   ├── relay.js               # Gas station: relays signed requests, admin pays gas
 │   └── quiz/
 │       ├── start.js           # Serve random questions (no answers)
 │       ├── answer.js          # Grade answers server-side

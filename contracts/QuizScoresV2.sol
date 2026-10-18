@@ -14,12 +14,16 @@ interface IProfileRegistry {
  *      - Admin-signed score submission, bound to this contract and chain
  *      - One attempt per quiz per wallet (no retakes)
  *      A wallet joins this event's leaderboard on its first score submission.
+ *      Score submission supports gasless calls through the ERC-2771
+ *      GaslessForwarder; direct calls from the participant's wallet still work.
  */
 contract QuizScoresV2 {
     /// @notice The admin address whose signatures authorize score submissions
     address public immutable admin;
     /// @notice Shared profile registry
     IProfileRegistry public immutable registry;
+    /// @notice ERC-2771 forwarder allowed to relay gasless calls
+    address public immutable trustedForwarder;
 
     mapping(address => uint256[4]) private scores; // Scores for Quiz 0-3
     mapping(address => bool) private isParticipant;
@@ -38,11 +42,13 @@ contract QuizScoresV2 {
 
     /// @param _admin           The wallet address authorized to sign quiz scores
     /// @param _profileRegistry Deployed ProfileRegistry address
-    constructor(address _admin, address _profileRegistry) {
+    /// @param _trustedForwarder Deployed GaslessForwarder address (address(0) disables gasless calls)
+    constructor(address _admin, address _profileRegistry, address _trustedForwarder) {
         require(_admin != address(0), "Invalid admin address");
         require(_profileRegistry != address(0), "Invalid registry address");
         admin = _admin;
         registry = IProfileRegistry(_profileRegistry);
+        trustedForwarder = _trustedForwarder;
     }
 
     // ============================================================
@@ -57,7 +63,7 @@ contract QuizScoresV2 {
      *      issued for one event contract from being replayed on another.
      * @param _quizId    Quiz index (0-3)
      * @param _score     Score earned (0-2000)
-     * @param _nonce     Must match the current nonce for msg.sender
+     * @param _nonce     Must match the current nonce for the participant
      * @param _signature 65-byte ECDSA signature from the admin wallet
      */
     function submitScore(
@@ -66,15 +72,16 @@ contract QuizScoresV2 {
         uint256 _nonce,
         bytes calldata _signature
     ) external {
-        require(registry.isRegistered(msg.sender), "Not registered");
+        address sender = _msgSender();
+        require(registry.isRegistered(sender), "Not registered");
         require(_quizId < 4, "Invalid quiz ID (must be 0-3)");
         require(_score <= 2000, "Score exceeds maximum (2000)");
-        require(!hasAttempted[msg.sender][_quizId], "Already attempted this quiz");
-        require(_nonce == nonces[msg.sender], "Invalid nonce");
+        require(!hasAttempted[sender][_quizId], "Already attempted this quiz");
+        require(_nonce == nonces[sender], "Invalid nonce");
 
         // Reconstruct the message the admin should have signed
         bytes32 messageHash = keccak256(
-            abi.encodePacked(address(this), block.chainid, msg.sender, _quizId, _score, _nonce)
+            abi.encodePacked(address(this), block.chainid, sender, _quizId, _score, _nonce)
         );
         bytes32 ethSignedHash = keccak256(
             abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash)
@@ -84,21 +91,28 @@ contract QuizScoresV2 {
         require(signer == admin, "Invalid signature");
 
         // Store score and mark as attempted (Checks-Effects-Interactions)
-        hasAttempted[msg.sender][_quizId] = true;
-        scores[msg.sender][_quizId] = _score;
-        nonces[msg.sender]++;
+        hasAttempted[sender][_quizId] = true;
+        scores[sender][_quizId] = _score;
+        nonces[sender]++;
 
-        if (!isParticipant[msg.sender]) {
-            isParticipant[msg.sender] = true;
-            participantAddresses.push(msg.sender);
+        if (!isParticipant[sender]) {
+            isParticipant[sender] = true;
+            participantAddresses.push(sender);
         }
 
-        emit ScoreSubmitted(msg.sender, _quizId, _score);
+        emit ScoreSubmitted(sender, _quizId, _score);
     }
 
     // ============================================================
     // VIEW FUNCTIONS
     // ============================================================
+
+    /**
+     * @notice ERC-2771: whether `_forwarder` may relay calls for participants.
+     */
+    function isTrustedForwarder(address _forwarder) public view returns (bool) {
+        return _forwarder != address(0) && _forwarder == trustedForwarder;
+    }
 
     /**
      * @notice Check if an address has a profile in the ProfileRegistry.
@@ -165,6 +179,17 @@ contract QuizScoresV2 {
     // ============================================================
     // INTERNAL HELPERS
     // ============================================================
+
+    /**
+     * @dev ERC-2771: the participant is appended to the calldata when the
+     *      call comes through the trusted forwarder.
+     */
+    function _msgSender() internal view returns (address) {
+        if (isTrustedForwarder(msg.sender) && msg.data.length >= 20) {
+            return address(bytes20(msg.data[msg.data.length - 20:]));
+        }
+        return msg.sender;
+    }
 
     /**
      * @dev Recover the signer from an Ethereum signed message hash and signature.

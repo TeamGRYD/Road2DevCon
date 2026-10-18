@@ -29,6 +29,7 @@ const sidebars = {
     'topics',
     'smart-contract',
     'profiles',
+    'gasless',
     'resources',
   ],
 };

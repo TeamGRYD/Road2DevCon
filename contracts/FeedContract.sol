@@ -15,6 +15,8 @@ interface IProfileRegistry {
  *      canonical (platform, mediaId) pair rather than a raw URL, so the same
  *      post can't be submitted twice to one topic.
  *      Feed votes are unrelated to quiz scores.
+ *      Submitting and voting support gasless calls through the ERC-2771
+ *      GaslessForwarder; direct calls from the participant's wallet still work.
  */
 contract FeedContract {
     /// @dev Append-only: new platforms go at the end
@@ -34,6 +36,8 @@ contract FeedContract {
 
     /// @notice Shared profile registry
     IProfileRegistry public immutable registry;
+    /// @notice ERC-2771 forwarder allowed to relay gasless calls
+    address public immutable trustedForwarder;
     /// @notice Moderator (can hide submissions)
     address public owner;
 
@@ -69,14 +73,16 @@ contract FeedContract {
     }
 
     modifier onlyRegistered() {
-        require(registry.isRegistered(msg.sender), "Not registered");
+        require(registry.isRegistered(_msgSender()), "Not registered");
         _;
     }
 
-    /// @param _profileRegistry Deployed ProfileRegistry address
-    constructor(address _profileRegistry) {
+    /// @param _profileRegistry  Deployed ProfileRegistry address
+    /// @param _trustedForwarder Deployed GaslessForwarder address (address(0) disables gasless calls)
+    constructor(address _profileRegistry, address _trustedForwarder) {
         require(_profileRegistry != address(0), "Invalid registry address");
         registry = IProfileRegistry(_profileRegistry);
+        trustedForwarder = _trustedForwarder;
         owner = msg.sender;
         emit OwnershipTransferred(address(0), msg.sender);
     }
@@ -95,6 +101,7 @@ contract FeedContract {
         external
         onlyRegistered
     {
+        address sender = _msgSender();
         require(_isValidMediaId(bytes(_mediaId)), "Invalid media ID");
 
         bytes32 mediaKey = keccak256(abi.encode(_platform, _mediaId));
@@ -107,7 +114,7 @@ contract FeedContract {
             topicId: _topicId,
             platform: _platform,
             mediaId: _mediaId,
-            submitter: msg.sender,
+            submitter: sender,
             timestamp: uint64(block.timestamp),
             upvotes: 0,
             downvotes: 0,
@@ -115,7 +122,7 @@ contract FeedContract {
         });
         topicSubmissions[_topicId].push(id);
 
-        emit Submitted(id, _topicId, msg.sender, _platform, _mediaId);
+        emit Submitted(id, _topicId, sender, _platform, _mediaId);
     }
 
     // ============================================================
@@ -127,14 +134,15 @@ contract FeedContract {
      * @dev Replaces any previous vote by the caller.
      */
     function vote(uint256 _id, int8 _value) external onlyRegistered {
+        address sender = _msgSender();
         require(_value >= -1 && _value <= 1, "Invalid vote value");
 
         Submission storage s = submissions[_id];
         require(s.id != 0, "Submission not found");
         require(!s.hidden, "Submission hidden");
-        require(s.submitter != msg.sender, "Cannot vote on own submission");
+        require(s.submitter != sender, "Cannot vote on own submission");
 
-        int8 previous = userVotes[_id][msg.sender];
+        int8 previous = userVotes[_id][sender];
         require(previous != _value, "Vote unchanged");
 
         if (previous == 1) s.upvotes--;
@@ -143,9 +151,9 @@ contract FeedContract {
         if (_value == 1) s.upvotes++;
         else if (_value == -1) s.downvotes++;
 
-        userVotes[_id][msg.sender] = _value;
+        userVotes[_id][sender] = _value;
 
-        emit Voted(_id, msg.sender, _value, s.upvotes, s.downvotes);
+        emit Voted(_id, sender, _value, s.upvotes, s.downvotes);
     }
 
     // ============================================================
@@ -170,6 +178,13 @@ contract FeedContract {
     // ============================================================
     // VIEW FUNCTIONS
     // ============================================================
+
+    /**
+     * @notice ERC-2771: whether `_forwarder` may relay calls for participants.
+     */
+    function isTrustedForwarder(address _forwarder) public view returns (bool) {
+        return _forwarder != address(0) && _forwarder == trustedForwarder;
+    }
 
     /**
      * @notice Number of submissions in a topic (including hidden ones).
@@ -223,6 +238,17 @@ contract FeedContract {
     // ============================================================
     // INTERNAL HELPERS
     // ============================================================
+
+    /**
+     * @dev ERC-2771: the participant is appended to the calldata when the
+     *      call comes through the trusted forwarder.
+     */
+    function _msgSender() internal view returns (address) {
+        if (isTrustedForwarder(msg.sender) && msg.data.length >= 20) {
+            return address(bytes20(msg.data[msg.data.length - 20:]));
+        }
+        return msg.sender;
+    }
 
     /**
      * @dev 1-32 bytes, each [A-Za-z0-9_-]. Covers tweet IDs, YouTube IDs and

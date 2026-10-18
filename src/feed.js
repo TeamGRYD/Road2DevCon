@@ -6,6 +6,7 @@ import { ACTIVE_TOPICS } from './config/topics.js';
 import {
   connectWallet, isConnected, isRegistered, getAddress, getSigner, onWalletConnect, onWalletDisconnect
 } from './wallet.js';
+import { isGasless, sendContractTx } from './gasless.js';
 
 // =================== CONSTANTS ===================
 
@@ -412,8 +413,7 @@ async function onVoteClick(e) {
   refreshCardVotes(id);
 
   try {
-    const feed = new ethers.Contract(FEED_CONTRACT_ADDRESS, FEED_ABI, getSigner());
-    const tx = await feed.vote(id, next);
+    const tx = await sendContractTx(getSigner(), FEED_CONTRACT_ADDRESS, FEED_ABI, 'vote', [id, next]);
     await tx.wait();
   } catch (err) {
     console.error('Vote failed:', err);
@@ -533,6 +533,13 @@ async function openSubmitModal(preselectedTopicId) {
   urlInput.focus();
 
   submitBtn.onclick = () => handleSubmit(parsed, Number(document.getElementById('feed-topic').value), close);
+
+  isGasless(FEED_CONTRACT_ADDRESS).then((gasless) => {
+    const statusEl = document.getElementById('feed-submit-status');
+    if (gasless && statusEl && !statusEl.dataset.busy) {
+      statusEl.textContent = 'Gas is on us. You only sign a message in your wallet, no ETH needed.';
+    }
+  });
 }
 
 async function handleSubmit(parsed, topicId, close) {
@@ -543,11 +550,13 @@ async function handleSubmit(parsed, topicId, close) {
   try {
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spinner"></span> Submitting...';
-    statusEl.textContent = '⏳ Confirm the transaction in MetaMask...';
+    statusEl.dataset.busy = 'true';
+    statusEl.textContent = (await isGasless(FEED_CONTRACT_ADDRESS))
+      ? '⏳ Sign the request in MetaMask (no gas needed)...'
+      : '⏳ Confirm the transaction in MetaMask...';
     statusEl.style.color = '#7235ED';
 
-    const feed = new ethers.Contract(FEED_CONTRACT_ADDRESS, FEED_ABI, getSigner());
-    const tx = await feed.submit(topicId, parsed.platform, parsed.mediaId);
+    const tx = await sendContractTx(getSigner(), FEED_CONTRACT_ADDRESS, FEED_ABI, 'submit', [topicId, parsed.platform, parsed.mediaId]);
 
     statusEl.textContent = '⏳ Transaction submitted! Waiting for confirmation...';
     await tx.wait();
@@ -575,7 +584,7 @@ async function handleSubmit(parsed, topicId, close) {
 
 function txErrorMessage(err, fallback) {
   const msg = err.reason || err.shortMessage || err.message || '';
-  if (err.code === 'ACTION_REJECTED' || err.code === 4001) return 'Transaction rejected.';
+  if (err.code === 'ACTION_REJECTED' || err.code === 4001) return 'Request rejected in wallet.';
   if (msg.includes('Already submitted')) return 'This post has already been submitted to this topic.';
   if (msg.includes('Not registered')) return 'Register your profile first.';
   if (msg.includes('Submission hidden')) return 'This post has been hidden by moderators.';
