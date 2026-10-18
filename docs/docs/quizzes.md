@@ -100,10 +100,10 @@ The leaderboard updates automatically after each score submission.
 Each event's leaderboard has a deep-linkable URL:
 
 ```
-https://www.road2devcon.quest/#/leaderboard/{eventId}
+https://www.road2devcon.quest/leaderboard/{eventId}
 ```
 
-For example: `#/leaderboard/vmatm00s` links directly to the ATLAS SkillTech leaderboard. Sharing this URL will open the leaderboard pre-selected to that event.
+For example: `/leaderboard/vmatm00s` links directly to the ATLAS SkillTech leaderboard. Sharing this URL will open the leaderboard pre-selected to that event.
 
 ### Adding a New Event
 
