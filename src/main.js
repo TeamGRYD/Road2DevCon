@@ -286,7 +286,7 @@ function renderQuizzesPage(app) {
 // =================== PAGE: LEADERBOARD ===================
 
 function renderLeaderboardPage(app, params = {}) {
-  // Set event from URL suffix (e.g., #/leaderboard/vmatm00s)
+  // Set event from URL suffix (e.g., /leaderboard/vmatm00s)
   if (params.suffix) {
     setActiveEventId(params.suffix);
   }
