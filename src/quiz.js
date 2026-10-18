@@ -504,7 +504,7 @@ function showResults(score, correctCount, total, maxScore, txHash, errorMsg = nu
   document.getElementById('close-results-btn').onclick = closeQuizModal;
   document.getElementById('results-leaderboard-btn').onclick = () => {
     closeQuizModal();
-    window.location.hash = '#/leaderboard';
+    navigateTo('/leaderboard');
   };
 }
 
