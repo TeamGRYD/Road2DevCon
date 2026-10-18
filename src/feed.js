@@ -19,6 +19,8 @@ const PLATFORM_META = {
 };
 const MEDIA_ID_RE = /^[A-Za-z0-9_-]{1,32}$/;
 const BATCH_SIZE = 50;
+// Show the "Open on …" link if a widget hasn't rendered by then (slow, or blocked by tracking protection)
+const EMBED_TIMEOUT_MS = 15000;
 const SORT_KEY = 'feed_sort';
 
 // =================== STATE ===================
@@ -363,15 +365,23 @@ async function mountEmbed(el, platform, mediaId) {
           allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
       `;
     } else if (platform === PLATFORM.X) {
-      await loadScript('https://platform.twitter.com/widgets.js');
-      await new Promise(resolve => window.twttr.ready(resolve));
+      await withTimeout((async () => {
+        await loadScript('https://platform.twitter.com/widgets.js');
+        await new Promise(resolve => window.twttr.ready(resolve));
+      })(), EMBED_TIMEOUT_MS);
+
+      // createTweet never settles for a detached container, so render in place
+      // after the spinner, and swap the spinner out once the tweet is ready
       const holder = document.createElement('div');
+      el.appendChild(holder);
+      const slow = setTimeout(() => {
+        el.querySelector('.feed-embed-placeholder')?.replaceWith(fallbackNode(platform, mediaId));
+      }, EMBED_TIMEOUT_MS);
       const tweet = await window.twttr.widgets.createTweet(mediaId, holder, {
         theme: 'dark', dnt: true, conversation: 'none', align: 'center'
-      });
+      }).finally(() => clearTimeout(slow));
       if (!tweet) throw new Error('Post unavailable');
-      el.innerHTML = '';
-      el.appendChild(holder);
+      el.querySelector('.feed-embed-placeholder, .feed-embed-fallback')?.remove();
     } else if (platform === PLATFORM.INSTAGRAM) {
       el.innerHTML = `
         <blockquote class="instagram-media" data-instgrm-permalink="https://www.instagram.com/p/${mediaId}/" data-instgrm-version="14">
@@ -383,13 +393,26 @@ async function mountEmbed(el, platform, mediaId) {
     }
   } catch (err) {
     console.warn('Embed failed:', err);
-    el.innerHTML = `
-      <div class="feed-embed-fallback">
-        <p>Couldn't load this post.</p>
-        <a href="${permalink(platform, mediaId)}" target="_blank" rel="noopener">Open on ${PLATFORM_META[platform].label} ↗</a>
-      </div>
-    `;
+    el.replaceChildren(fallbackNode(platform, mediaId));
   }
+}
+
+function fallbackNode(platform, mediaId) {
+  const node = document.createElement('div');
+  node.className = 'feed-embed-fallback';
+  node.innerHTML = `
+    <p>Couldn't load this post.</p>
+    <a href="${permalink(platform, mediaId)}" target="_blank" rel="noopener">Open on ${PLATFORM_META[platform].label} ↗</a>
+  `;
+  return node;
+}
+
+function withTimeout(promise, ms) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 // =================== VOTING ===================
